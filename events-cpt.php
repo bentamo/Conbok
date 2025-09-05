@@ -42,56 +42,98 @@ function conbook_events_db_setup() {
     global $wpdb;
     $charset_collate = $wpdb->get_charset_collate();
 
-    // Table: Tickets
-    $table_tickets = $wpdb->prefix . 'event_tickets';
-    $sql_tickets = "CREATE TABLE $table_tickets (
-        ticket_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-        event_id BIGINT(20) UNSIGNED NOT NULL,
-        ticket_name VARCHAR(255) NOT NULL,
-        ticket_description TEXT NULL,
-        ticket_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-        PRIMARY KEY  (ticket_id),
-        KEY event_id (event_id)
+    // Table 1: Events
+
+    $table_event_details = $wpdb->prefix . 'event_details';
+    $sql_event_details = "CREATE TABLE $table_event_details (
+        event_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        event_name VARCHAR(255) NOT NULL,
+        event_description TEXT NULL,
+        event_date DATETIME NOT NULL,
+        PRIMARY KEY (event_id)
     ) $charset_collate;";
 
-    // Table: Registrations
-    $table_regs = $wpdb->prefix . 'event_registrations';
-    $sql_regs = "CREATE TABLE $table_regs (
-        registration_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-        event_id BIGINT(20) UNSIGNED NOT NULL,
-        ticket_id BIGINT(20) UNSIGNED NOT NULL,
+    // Table 2: Attendees
+
+    $table_event_attendees = $wpdb->prefix . 'event_attendees';
+    $sql_event_attendees = "CREATE TABLE $table_event_attendees (
+        attendee_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
         first_name VARCHAR(100) NOT NULL,
         middle_name VARCHAR(100) NULL,
         last_name VARCHAR(100) NOT NULL,
         email VARCHAR(255) NOT NULL,
         contact_number VARCHAR(50) NULL,
-        payment_option VARCHAR(100) NULL,
-        payment_proof VARCHAR(255) NULL,
-        status ENUM('pending','accepted','rejected') DEFAULT 'pending',
-        checked_in TINYINT(1) DEFAULT 0,
-        registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY  (registration_id),
-        KEY event_id (event_id),
-        KEY ticket_id (ticket_id),
-        KEY status (status)
+        PRIMARY KEY (attendee_id),
+        UNIQUE KEY uniq_email (email)
     ) $charset_collate;";
 
-    // Table: Payments
-    $table_payments = $wpdb->prefix . 'event_payments';
-    $sql_payments = "CREATE TABLE $table_payments (
+    // Table 3: Tickets
+    
+    $table_event_tickets = $wpdb->prefix . 'event_tickets';
+    $sql_event_tickets = "CREATE TABLE $table_event_tickets (
+        ticket_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        event_id BIGINT(20) UNSIGNED NOT NULL,
+        ticket_name VARCHAR(255) NOT NULL,
+        ticket_description TEXT NULL,
+        ticket_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        PRIMARY KEY (ticket_id),
+        KEY idx_event_id (event_id)
+    ) $charset_collate;";
+
+    // Table 4: Payments
+
+    $table_event_payments = $wpdb->prefix . 'event_payments';
+    $sql_event_payments = "CREATE TABLE $table_event_payments (
         payment_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
         event_id BIGINT(20) UNSIGNED NOT NULL,
-        bank_name VARCHAR(255) NOT NULL,
-        bank_account_name VARCHAR(255) NOT NULL,
-        instructions TEXT NULL,
-        PRIMARY KEY  (payment_id),
-        KEY event_id (event_id)
+        attendee_id BIGINT(20) UNSIGNED NOT NULL,
+        ticket_id BIGINT(20) UNSIGNED NOT NULL,
+        proof_of_payment VARCHAR(255) NULL,  -- new column for storing file path / URL
+        PRIMARY KEY (payment_id),
+        KEY idx_event_id (event_id),
+        KEY idx_attendee_id (attendee_id),
+        KEY idx_ticket_id (ticket_id)
+    ) $charset_collate;";
+
+    // Table 5: Registrations
+
+    $table_event_registrations = $wpdb->prefix . 'event_registrations';
+    $sql_event_registrations = "CREATE TABLE $table_event_registrations (
+        registration_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        event_id BIGINT(20) UNSIGNED NOT NULL,
+        attendee_id BIGINT(20) UNSIGNED NOT NULL,
+        ticket_id BIGINT(20) UNSIGNED NOT NULL,
+        payment_id BIGINT(20) UNSIGNED NULL,
+        registration_status ENUM('Pending','Accepted','Rejected','Cancelled') DEFAULT 'Pending',
+        checked_in TINYINT(1) DEFAULT 0,
+        PRIMARY KEY (registration_id),
+        KEY idx_event_id (event_id),
+        KEY idx_attendee_id (attendee_id),
+        KEY idx_ticket_id (ticket_id),
+        KEY idx_payment_id (payment_id)
+    ) $charset_collate;";
+
+    // Table 6: Payment Options
+
+    $table_event_payment_options = $wpdb->prefix . 'event_payment_options';
+    $sql_event_payment_options = "CREATE TABLE $table_event_payment_options (
+        payment_option_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        event_id BIGINT(20) UNSIGNED NOT NULL,
+        option_name VARCHAR(255) NOT NULL,        -- e.g., Bank Transfer, GCash, PayPal
+        bank_name VARCHAR(255) NULL,              -- optional, only for bank transfers
+        bank_account_name VARCHAR(255) NULL,      -- optional, only for bank transfers
+        instructions TEXT NULL,                   -- payment instructions for this option
+        PRIMARY KEY (payment_option_id),
+        KEY idx_event_id (event_id)
     ) $charset_collate;";
 
     require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-    dbDelta( $sql_tickets );
-    dbDelta( $sql_regs );
-    dbDelta( $sql_payments );
+    dbDelta( $sql_event_details );
+    dbDelta( $sql_event_attendees );
+    dbDelta( $sql_event_tickets );
+    dbDelta( $sql_event_payments );
+    dbDelta( $sql_event_registrations );
+    dbDelta( $sql_event_payment_options );
 }
 
 /**
