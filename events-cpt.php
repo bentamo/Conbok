@@ -49,7 +49,11 @@ function conbook_events_db_setup() {
         event_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
         event_name VARCHAR(255) NOT NULL,
         event_description TEXT NULL,
-        event_date DATETIME NOT NULL,
+        event_start_date DATE NOT NULL, 
+        event_start_time TIME NOT NULL,
+        event_end_date DATE NOT NULL,
+        event_end_time TIME NOT NULL,
+        event_location VARCHAR(255) NULL,
         PRIMARY KEY (event_id)
     ) $charset_collate;";
 
