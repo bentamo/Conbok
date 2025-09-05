@@ -31,6 +31,9 @@ require_once 'includes/lib/class-wordpress-plugin-template-admin-api.php';
 require_once 'includes/lib/class-wordpress-plugin-template-post-type.php';
 require_once 'includes/lib/class-wordpress-plugin-template-taxonomy.php';
 require_once 'registration_form.php';
+require_once 'date-and-time-picker.php';
+require_once 'location-picker.php';
+require_once 'event-form.php';
 
 
 /**
