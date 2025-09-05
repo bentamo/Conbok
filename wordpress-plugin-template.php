@@ -36,6 +36,7 @@ require_once 'my_events.php';
 require_once 'date-and-time-picker.php';
 require_once 'location-picker.php';
 require_once 'event-form.php';
+require_once 'events-cpt.php';
 
 
 /**
