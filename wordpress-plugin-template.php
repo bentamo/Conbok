@@ -25,10 +25,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once 'includes/class-wordpress-plugin-template.php';
 require_once 'includes/class-wordpress-plugin-template-settings.php';
 
+
 // Load plugin libraries.
 require_once 'includes/lib/class-wordpress-plugin-template-admin-api.php';
 require_once 'includes/lib/class-wordpress-plugin-template-post-type.php';
 require_once 'includes/lib/class-wordpress-plugin-template-taxonomy.php';
+require_once 'registration_form.php';
+
 
 /**
  * Returns the main instance of WordPress_Plugin_Template to prevent the need to use globals.
