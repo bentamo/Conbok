@@ -60,115 +60,120 @@ add_shortcode('event-form', function ($atts = []) {
         </button>
     </div>
 
-    <div class="event-form-wrapper" style="display:flex; gap:1.5rem; align-items:flex-start;">
+    <!-- Event Form -->
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="conbook_create_event">
+        <?php wp_nonce_field('conbook_create_event_nonce', 'conbook_create_event_nonce_field'); ?>
 
-        <!-- Image Grid Upload -->
-        <div class="image-upload-grid" style="flex:0 0 200px; display:grid; gap:0.5rem;">
-            <div class="image-slot" style="width:500px; height:500px; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; overflow:hidden;">
-                <span class="upload-text" style="text-align:center; color:#888;">Click to upload</span>
-                <input type="file" id="<?php echo esc_attr($uid); ?>-image" name="event_image" accept="image/*" style="position:absolute; width:100%; height:100%; opacity:0; cursor:pointer;" />
-                <img src="" alt="Preview" class="preview-image" style="position:absolute; width:100%; height:100%; object-fit:cover; display:none;" />
+        <div class="event-form-wrapper" style="display:flex; gap:1.5rem; align-items:flex-start;">
+
+            <!-- Image Grid Upload -->
+            <div class="image-upload-grid" style="flex:0 0 200px; display:grid; gap:0.5rem;">
+                <div class="image-slot" style="width:500px; height:500px; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; overflow:hidden;">
+                    <span class="upload-text" style="text-align:center; color:#888;">Click to upload</span>
+                    <input type="file" id="<?php echo esc_attr($uid); ?>-image" name="event_image" accept="image/*" style="position:absolute; width:100%; height:100%; opacity:0; cursor:pointer;" />
+                    <img src="" alt="Preview" class="preview-image" style="position:absolute; width:100%; height:100%; object-fit:cover; display:none;" />
+                </div>
+            </div>
+
+            <div id="<?php echo esc_attr($uid); ?>" class="event-form <?php echo esc_attr($a['class']); ?>" style="flex:1; display:grid; gap:1.25rem;">
+
+                <!-- Date Range -->
+                <div class="range-group date-range">
+                    <div class="range-field">
+                        <label for="<?php echo esc_attr($uid); ?>-date-start"><?php echo esc_html($a['date-start-label']); ?></label>
+                        <input type="date"
+                            id="<?php echo esc_attr($uid); ?>-date-start"
+                            name="<?php echo esc_attr($a['date-name-start']); ?>"
+                            value="<?php echo esc_attr($a['date-default-start']); ?>"
+                            <?php echo $a['date-min'] ? 'min="'.esc_attr($a['date-min']).'"' : ''; ?>
+                            <?php echo $a['date-max'] ? 'max="'.esc_attr($a['date-max']).'"' : ''; ?>
+                            <?php echo $date_required ? 'required' : ''; ?>
+                        />
+                    </div>
+                    <div class="range-sep">–</div>
+                    <div class="range-field">
+                        <label for="<?php echo esc_attr($uid); ?>-date-end"><?php echo esc_html($a['date-end-label']); ?></label>
+                        <input type="date"
+                            id="<?php echo esc_attr($uid); ?>-date-end"
+                            name="<?php echo esc_attr($a['date-name-end']); ?>"
+                            value="<?php echo esc_attr($a['date-default-end']); ?>"
+                            <?php echo $a['date-min'] ? 'min="'.esc_attr($a['date-min']).'"' : ''; ?>
+                            <?php echo $a['date-max'] ? 'max="'.esc_attr($a['date-max']).'"' : ''; ?>
+                            <?php echo $date_required ? 'required' : ''; ?>
+                        />
+                    </div>
+                </div>
+
+                <!-- Time Range -->
+                <div class="range-group time-range">
+                    <div class="range-field">
+                        <label for="<?php echo esc_attr($uid); ?>-time-start"><?php echo esc_html($a['time-start-label']); ?></label>
+                        <input type="time"
+                            id="<?php echo esc_attr($uid); ?>-time-start"
+                            name="<?php echo esc_attr($a['time-name-start']); ?>"
+                            value="<?php echo esc_attr($a['time-default-start']); ?>"
+                            step="<?php echo intval($a['time-step']); ?>"
+                            <?php echo $time_required ? 'required' : ''; ?>
+                        />
+                    </div>
+                    <div class="range-sep">–</div>
+                    <div class="range-field">
+                        <label for="<?php echo esc_attr($uid); ?>-time-end"><?php echo esc_html($a['time-end-label']); ?></label>
+                        <input type="time"
+                            id="<?php echo esc_attr($uid); ?>-time-end"
+                            name="<?php echo esc_attr($a['time-name-end']); ?>"
+                            value="<?php echo esc_attr($a['time-default-end']); ?>"
+                            step="<?php echo intval($a['time-step']); ?>"
+                            <?php echo $time_required ? 'required' : ''; ?>
+                        />
+                    </div>
+                </div>
+
+                <!-- Location -->
+                <div class="location-group">
+                    <div class="location-field">
+                        <label for="<?php echo esc_attr($uid); ?>-location"><?php echo esc_html($a['location-label']); ?></label>
+                        <input type="text"
+                            id="<?php echo esc_attr($uid); ?>-location"
+                            name="<?php echo esc_attr($a['location-name']); ?>"
+                            value="<?php echo esc_attr($a['location-default']); ?>"
+                            placeholder="<?php echo esc_attr($a['location-placeholder']); ?>"
+                            <?php echo $location_required ? 'required' : ''; ?>
+                        />
+                    </div>
+                </div>
+
+                <!-- Ticket Options -->
+                <div class="tickets-group">
+                    <div class="tickets-field">
+                        <label>Ticket Options</label>
+                        <div class="tickets-list"></div>
+                        <button type="button" class="add-ticket-btn">➕ Add New Type</button>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="description-group">
+                    <div class="description-field">
+                        <label for="<?php echo esc_attr($uid); ?>-description"><?php echo esc_html($a['description-label']); ?></label>
+                        <textarea id="<?php echo esc_attr($uid); ?>-description"
+                            name="<?php echo esc_attr($a['description-name']); ?>"
+                            placeholder="<?php echo esc_attr($a['description-placeholder']); ?>"
+                            rows="4"></textarea>
+                    </div>
+                </div>
+
             </div>
         </div>
 
-        <!-- Event Form -->
-        <div id="<?php echo esc_attr($uid); ?>" class="event-form <?php echo esc_attr($a['class']); ?>" style="flex:1; display:grid; gap:1.25rem;">
-
-            <!-- Date Range -->
-            <div class="range-group date-range">
-                <div class="range-field">
-                    <label for="<?php echo esc_attr($uid); ?>-date-start"><?php echo esc_html($a['date-start-label']); ?></label>
-                    <input type="date"
-                        id="<?php echo esc_attr($uid); ?>-date-start"
-                        name="<?php echo esc_attr($a['date-name-start']); ?>"
-                        value="<?php echo esc_attr($a['date-default-start']); ?>"
-                        <?php echo $a['date-min'] ? 'min="'.esc_attr($a['date-min']).'"' : ''; ?>
-                        <?php echo $a['date-max'] ? 'max="'.esc_attr($a['date-max']).'"' : ''; ?>
-                        <?php echo $date_required ? 'required' : ''; ?>
-                    />
-                </div>
-                <div class="range-sep">–</div>
-                <div class="range-field">
-                    <label for="<?php echo esc_attr($uid); ?>-date-end"><?php echo esc_html($a['date-end-label']); ?></label>
-                    <input type="date"
-                        id="<?php echo esc_attr($uid); ?>-date-end"
-                        name="<?php echo esc_attr($a['date-name-end']); ?>"
-                        value="<?php echo esc_attr($a['date-default-end']); ?>"
-                        <?php echo $a['date-min'] ? 'min="'.esc_attr($a['date-min']).'"' : ''; ?>
-                        <?php echo $a['date-max'] ? 'max="'.esc_attr($a['date-max']).'"' : ''; ?>
-                        <?php echo $date_required ? 'required' : ''; ?>
-                    />
-                </div>
-            </div>
-
-            <!-- Time Range -->
-            <div class="range-group time-range">
-                <div class="range-field">
-                    <label for="<?php echo esc_attr($uid); ?>-time-start"><?php echo esc_html($a['time-start-label']); ?></label>
-                    <input type="time"
-                        id="<?php echo esc_attr($uid); ?>-time-start"
-                        name="<?php echo esc_attr($a['time-name-start']); ?>"
-                        value="<?php echo esc_attr($a['time-default-start']); ?>"
-                        step="<?php echo intval($a['time-step']); ?>"
-                        <?php echo $time_required ? 'required' : ''; ?>
-                    />
-                </div>
-                <div class="range-sep">–</div>
-                <div class="range-field">
-                    <label for="<?php echo esc_attr($uid); ?>-time-end"><?php echo esc_html($a['time-end-label']); ?></label>
-                    <input type="time"
-                        id="<?php echo esc_attr($uid); ?>-time-end"
-                        name="<?php echo esc_attr($a['time-name-end']); ?>"
-                        value="<?php echo esc_attr($a['time-default-end']); ?>"
-                        step="<?php echo intval($a['time-step']); ?>"
-                        <?php echo $time_required ? 'required' : ''; ?>
-                    />
-                </div>
-            </div>
-
-            <!-- Location -->
-            <div class="location-group">
-                <div class="location-field">
-                    <label for="<?php echo esc_attr($uid); ?>-location"><?php echo esc_html($a['location-label']); ?></label>
-                    <input type="text"
-                        id="<?php echo esc_attr($uid); ?>-location"
-                        name="<?php echo esc_attr($a['location-name']); ?>"
-                        value="<?php echo esc_attr($a['location-default']); ?>"
-                        placeholder="<?php echo esc_attr($a['location-placeholder']); ?>"
-                        <?php echo $location_required ? 'required' : ''; ?>
-                    />
-                </div>
-            </div>
-
-            <!-- Ticket Options -->
-            <div class="tickets-group">
-                <div class="tickets-field">
-                    <label>Ticket Options</label>
-                    <div class="tickets-list"></div>
-                    <button type="button" class="add-ticket-btn">➕ Add New Type</button>
-                </div>
-            </div>
-
-            <!-- Description -->
-            <div class="description-group">
-                <div class="description-field">
-                    <label for="<?php echo esc_attr($uid); ?>-description"><?php echo esc_html($a['description-label']); ?></label>
-                    <textarea id="<?php echo esc_attr($uid); ?>-description"
-                        name="<?php echo esc_attr($a['description-name']); ?>"
-                        placeholder="<?php echo esc_attr($a['description-placeholder']); ?>"
-                        rows="4"></textarea>
-                </div>
-            </div>
-
+        <!-- Create Event Button Container -->
+        <div class="create-event-container" style="margin-top:1.5rem; text-align:right;">
+            <button type="submit" class="create-event-btn" style="padding:.75rem 1.25rem; background:#0073aa; color:#fff; border:none; border-radius:.375rem; cursor:pointer; font-size:1rem;">
+                Create Event
+            </button>
         </div>
-    </div>
-
-    <!-- Create Event Button Container -->
-    <div class="create-event-container" style="margin-top:1.5rem; text-align:right;">
-        <button type="button" class="create-event-btn" style="padding:.75rem 1.25rem; background:#0073aa; color:#fff; border:none; border-radius:.375rem; cursor:pointer; font-size:1rem;">
-            Create Event
-        </button>
-    </div>
+    </form>
 
     <script>
     (function(){
@@ -238,12 +243,6 @@ add_shortcode('event-form', function ($atts = []) {
         var backBtn = document.querySelector('.back-btn');
         backBtn.addEventListener('click', function(){
             window.history.back();
-        });
-
-        // Create Event button click
-        var createBtn = document.querySelector('.create-event-btn');
-        createBtn.addEventListener('click', function() {
-            alert('Create Event clicked! You can hook AJAX or form submit here.');
         });
     })();
     </script>
