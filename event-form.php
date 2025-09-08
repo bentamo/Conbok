@@ -54,8 +54,8 @@ add_shortcode('event-form', function ($atts = []) {
     ob_start(); ?>
 
     <!-- Back Button Container -->
-    <div class="back-button-container" style="margin-bottom:1rem;">
-        <button type="button" class="back-btn" style="padding:.5rem 1rem; background:#eee; border:1px solid #ccc; border-radius:.375rem; cursor:pointer;">
+    <div class="back-button-container">
+        <button type="button" class="back-btn">
             ← Back to Personal Page
         </button>
     </div>
@@ -65,18 +65,19 @@ add_shortcode('event-form', function ($atts = []) {
         <input type="hidden" name="action" value="conbook_create_event">
         <?php wp_nonce_field('conbook_create_event_nonce', 'conbook_create_event_nonce_field'); ?>
 
-        <div class="event-form-wrapper" style="display:flex; gap:1.5rem; align-items:flex-start;">
+        <div class="event-form-wrapper">
 
             <!-- Image Grid Upload -->
-            <div class="image-upload-grid" style="flex:0 0 200px; display:grid; gap:0.5rem;">
-                <div class="image-slot" style="width:500px; height:500px; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; overflow:hidden;">
-                    <span class="upload-text" style="text-align:center; color:#888;">Click to upload</span>
-                    <input type="file" id="<?php echo esc_attr($uid); ?>-image" name="event_image" accept="image/*" style="position:absolute; width:100%; height:100%; opacity:0; cursor:pointer;" />
-                    <img src="" alt="Preview" class="preview-image" style="position:absolute; width:100%; height:100%; object-fit:cover; display:none;" />
+            <div class="image-upload-grid">
+                <div class="image-slot">
+                    <span class="upload-text">Click to upload</span>
+                    <input type="file" id="<?php echo esc_attr($uid); ?>-image" name="event_image" accept="image/*" />
+                    <img src="" alt="Preview" class="preview-image" />
                 </div>
             </div>
 
-            <div id="<?php echo esc_attr($uid); ?>" class="event-form <?php echo esc_attr($a['class']); ?>" style="flex:1; display:grid; gap:1.25rem;">
+            <!-- Form Fields -->
+            <div id="<?php echo esc_attr($uid); ?>" class="event-form <?php echo esc_attr($a['class']); ?>">
 
                 <!-- Date Range -->
                 <div class="range-group date-range">
@@ -168,8 +169,8 @@ add_shortcode('event-form', function ($atts = []) {
         </div>
 
         <!-- Create Event Button Container -->
-        <div class="create-event-container" style="margin-top:1.5rem; text-align:right;">
-            <button type="submit" class="create-event-btn" style="padding:.75rem 1.25rem; background:#0073aa; color:#fff; border:none; border-radius:.375rem; cursor:pointer; font-size:1rem;">
+        <div class="create-event-container">
+            <button type="submit" class="create-event-btn">
                 Create Event
             </button>
         </div>
@@ -248,16 +249,25 @@ add_shortcode('event-form', function ($atts = []) {
     </script>
 
     <style>
+    /* Base */
     .back-button-container { text-align:left; margin-bottom:1rem; }
+    .back-btn { padding:.5rem 1rem; background:#eee; border:1px solid #ccc; border-radius:.375rem; cursor:pointer; }
     .back-btn:hover { background:#ddd; }
 
-    .event-form-wrapper { display:flex; gap:1.5rem; align-items:flex-start; }
-    .image-upload-grid .image-slot { border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; overflow:hidden; }
-    .image-upload-grid .image-slot:hover { border-color: #888; }
-    .event-form { display:grid; gap:1.25rem; border:1px solid #ddd; border-radius:.5rem; padding:1rem; background:#fafafa; flex:1; }
+    .event-form-wrapper { display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; }
+    .event-form { display:grid; gap:1.25rem; border:1px solid #ddd; border-radius:.5rem; padding:1rem; background:#fafafa; flex:1; min-width:260px; }
+
+    /* Image Upload */
+    .image-upload-grid { flex:0 0 auto; display:flex; justify-content:center; }
+    .image-slot { width:500px; height:500px; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; overflow:hidden; max-width:100%; }
+    .image-slot:hover { border-color:#888; }
+    .upload-text { text-align:center; color:#888; }
+    .image-slot input[type="file"] { position:absolute; width:100%; height:100%; opacity:0; cursor:pointer; }
+    .preview-image { position:absolute; width:100%; height:100%; object-fit:cover; display:none; }
+
+    /* Fields */
     .range-group, .location-group, .tickets-group, .description-group { display:grid; gap:.5rem; align-items:end; grid-template-columns:1fr auto 1fr auto; column-gap:1rem; }
-    .location-group, .description-group { grid-template-columns:1fr; }
-    .tickets-group { grid-template-columns:1fr; }
+    .location-group, .description-group, .tickets-group { grid-template-columns:1fr; }
     .range-field, .location-field, .description-field, .tickets-field { display:grid; gap:.25rem; }
     .range-sep { padding:0 .25rem; font-weight:600; line-height:2.4; text-align:center; }
     .event-form input, .event-form textarea { width:100%; padding:.5rem; border:1px solid #ccc; border-radius:.375rem; font-family:inherit; }
@@ -266,8 +276,37 @@ add_shortcode('event-form', function ($atts = []) {
     .ticket-item button.remove-ticket { background:none; border:none; color:#c00; font-size:1.2rem; cursor:pointer; }
     .add-ticket-btn { padding:.5rem .75rem; border:1px solid #ccc; background:#fff; border-radius:.375rem; cursor:pointer; }
     .add-ticket-btn:hover { background:#f0f0f0; }
+
+    /* Button */
+    .create-event-container { margin-top:1.5rem; text-align:right; }
     .create-event-btn { padding:.75rem 1.25rem; background:#0073aa; color:#fff; border:none; border-radius:.375rem; cursor:pointer; font-size:1rem; }
     .create-event-btn:hover { background:#005177; }
+
+    /* Tablet (≥600px and <992px) */
+    @media (max-width: 992px) {
+      .event-form-wrapper { flex-direction:row; justify-content:center; }
+      .image-upload-grid { flex:0 0 100%; display:flex; justify-content:center; }
+      .image-slot { width:500px; height:500px; }
+    }
+
+    /* Mobile (<600px) */
+    @media (max-width: 600px) {
+      .event-form-wrapper { flex-direction:column; align-items:center; }
+      .image-upload-grid, .event-form { width:100%; }
+      .image-slot { width:100%; height:auto; aspect-ratio:1/1; }
+
+      /* Make all form fields full width */
+      .range-group,
+      .time-range,
+      .date-range,
+      .location-group,
+      .tickets-group,
+      .description-group {
+        grid-template-columns: 1fr;
+      }
+      .range-sep { display:none; }
+      .ticket-item { grid-template-columns:1fr; }
+    }
     </style>
     <?php
     return ob_get_clean();
