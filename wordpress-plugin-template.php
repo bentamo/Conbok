@@ -33,9 +33,20 @@ require_once 'includes/lib/class-wordpress-plugin-template-taxonomy.php';
 require_once 'registration_form.php';
 require_once 'landing_page.php';
 require_once 'my_events.php';
-require_once 'event-form.php';
+require_once 'create-event.php';
 require_once 'events-cpt.php';
 
+// Event Landing Page
+require_once 'event-title.php';
+require_once 'event-date.php';
+require_once 'event-time.php';
+require_once 'event-location.php';
+require_once 'event-ticket-options.php';
+require_once 'event-image.php';
+require_once 'event-description.php';
+require_once 'event-organizer.php';
+require_once 'user-upcoming-events.php';
+require_once 'user-past-events.php';
 
 /**
  * Returns the main instance of WordPress_Plugin_Template to prevent the need to use globals.
