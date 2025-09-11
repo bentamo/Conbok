@@ -36,6 +36,7 @@ require_once 'my_events.php';
 require_once 'create-event.php';
 require_once 'events-cpt.php';
 require_once 'qr-scanner.php';
+require_once 'qr-generator.php';
 
 // Event Landing Page
 require_once 'event-title.php';
