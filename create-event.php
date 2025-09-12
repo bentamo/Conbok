@@ -175,7 +175,15 @@ add_shortcode('create-event', function ($atts = []) {
     .event-form input, .event-form textarea { width: 100%; padding: .5rem; border:1px solid #ccc; border-radius:.375rem; resize:none; }
     .tickets-list { display:grid; gap:.5rem; }
     .ticket-item { display:grid; grid-template-columns:2fr 1fr auto; gap:.5rem; align-items:center; }
-    .remove-ticket { background:none; border:none; color:#c00; font-size:1.2rem; cursor:pointer; }
+    .ticket-item textarea {
+        grid-column: 1 / span 3;
+        width: 100%;
+        padding: .5rem;
+        border: 1px solid #ccc;
+        border-radius: .375rem;
+        resize: none;
+    }
+    .remove-ticket { grid-column: 1 / span 3; background:none; border:none; color:#c00; font-size:1.2rem; cursor:pointer; }
     .add-ticket-btn { margin-top:0.5rem; padding:.5rem .75rem; border:1px solid #ccc; background:#fff; color:#333; border-radius:.375rem; cursor:pointer; }
     .add-ticket-btn:hover { background:#f0f0f0; }
 
@@ -235,6 +243,7 @@ add_shortcode('create-event', function ($atts = []) {
             item.innerHTML = `
                 <input type="text" name="ticket_name_${ticketIdx}" placeholder="Ticket Name" required />
                 <input type="number" name="ticket_price_${ticketIdx}" placeholder="Price" min="0" step="0.01" required />
+                <textarea name="ticket_description_${ticketIdx}" placeholder="Ticket Description" rows="1"></textarea>
                 <button type="button" class="remove-ticket">✖</button>`;
             ticketsList.appendChild(item);
             item.querySelector('.remove-ticket').addEventListener('click', () => item.remove());
