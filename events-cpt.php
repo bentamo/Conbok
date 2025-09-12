@@ -70,13 +70,25 @@ function conbook_handle_create_event() {
     ]);
 
     if ($event_id) {
-        // Save custom fields
+    // Save custom fields
         update_post_meta($event_id, '_start_date', $start_date);
         update_post_meta($event_id, '_end_date', $end_date);
         update_post_meta($event_id, '_start_time', $start_time);
         update_post_meta($event_id, '_end_time', $end_time);
         update_post_meta($event_id, '_location', $location);
-        update_post_meta($event_id, '_ticket_options', $tickets);
+
+        // Insert tickets directly into custom table
+        global $wpdb;
+        $table_tickets = $wpdb->prefix . 'event_tickets';
+
+        foreach ($tickets as $ticket) {
+            $wpdb->insert($table_tickets, [
+                'event_id'    => $event_id,
+                'name'        => $ticket['name'],
+                'description' => '', // optional, you can extend form later
+                'price'       => $ticket['price'],
+            ]);
+        }
 
         // Handle image upload
         if (!empty($_FILES['event_image']['name'])) {
@@ -90,6 +102,7 @@ function conbook_handle_create_event() {
             }
         }
     }
+
 
     wp_redirect(home_url('/'));
     exit;
