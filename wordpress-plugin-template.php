@@ -50,6 +50,13 @@ require_once 'event-organizer.php';
 require_once 'user-upcoming-events.php';
 require_once 'user-past-events.php';
 
+// Buttons
+require_once 'btn-back-to-view-events.php';
+require_once 'btn-join-event.php';
+
+// Forms
+require_once 'form-event-registration';
+
 /**
  * Returns the main instance of WordPress_Plugin_Template to prevent the need to use globals.
  *
