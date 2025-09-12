@@ -34,8 +34,10 @@ require_once __DIR__ . '/create-event.php';
 // 3. Handle Frontend Form Submission
 // -------------------------------
 function conbook_handle_create_event() {
-    if (!isset($_POST['conbook_create_event_nonce_field']) 
-        || !wp_verify_nonce($_POST['conbook_create_event_nonce_field'], 'conbook_create_event_nonce')) {
+    if (
+        !isset($_POST['conbook_create_event_nonce_field']) ||
+        !wp_verify_nonce($_POST['conbook_create_event_nonce_field'], 'conbook_create_event_nonce')
+    ) {
         wp_die('Security check failed.');
     }
 
@@ -54,8 +56,9 @@ function conbook_handle_create_event() {
         if (strpos($key, 'ticket_name_') === 0) {
             $i = str_replace('ticket_name_', '', $key);
             $tickets[] = [
-                'name'  => sanitize_text_field($value),
-                'price' => floatval($_POST['ticket_price_' . $i] ?? 0),
+                'name'        => sanitize_text_field($value),
+                'price'       => floatval($_POST['ticket_price_' . $i] ?? 0),
+                'description' => sanitize_textarea_field($_POST['ticket_description_' . $i] ?? ''),
             ];
         }
     }
@@ -89,21 +92,21 @@ function conbook_handle_create_event() {
         update_post_meta($event_id, '_end_time', $end_time);
         update_post_meta($event_id, '_location', $location);
 
+        // Insert tickets into custom table
         global $wpdb;
-
-        // Insert tickets
         $table_tickets  = $wpdb->prefix . 'event_tickets';
+        $table_payments = $wpdb->prefix . 'event_payment_methods';
+
         foreach ($tickets as $ticket) {
             $wpdb->insert($table_tickets, [
                 'event_id'    => $event_id,
                 'name'        => $ticket['name'],
-                'description' => '', // optional
+                'description' => $ticket['description'],
                 'price'       => $ticket['price'],
             ]);
         }
 
-        // Insert payment methods
-        $table_payments = $wpdb->prefix . 'event_payment_methods';
+        // Insert payments into custom table
         foreach ($payments as $payment) {
             $wpdb->insert($table_payments, [
                 'event_id' => $event_id,
