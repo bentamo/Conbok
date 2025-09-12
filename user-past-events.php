@@ -111,7 +111,7 @@ function conbook_user_past_events_shortcode($atts) {
         $start_date = get_post_meta($post_id, '_start_date', true); 
         $start_time = get_post_meta($post_id, '_start_time', true); 
         $datetime_str = $start_date . ' ' . ($start_time ?: '00:00:00');
-        $formatted_start = date('M j, Y • g:i A', strtotime($datetime_str));
+        $formatted_start = date('m/d/y • g:i A', strtotime($datetime_str));
 
         // Event slug
         $event_slug = get_post_field('post_name', $post_id);
