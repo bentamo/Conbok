@@ -44,11 +44,11 @@ function conbook_event_date_shortcode($atts) {
     $start_date = get_post_meta($post_id, '_start_date', true);
     $end_date   = get_post_meta($post_id, '_end_date', true);
 
-    if (!$start_date) return '';
+    if (!$start_date) return ''; 
 
     // Format start and end dates
-    $formatted_start = date('F j, Y', strtotime($start_date));
-    $formatted_end   = $end_date ? date('F j, Y', strtotime($end_date)) : '';
+    $formatted_start = date('m/d/Y', strtotime($start_date));
+    $formatted_end   = $end_date ? date('m/d/Y', strtotime($end_date)) : '';
 
     $output = '<div class="event-date">';
     $output .= '<strong>Date: </strong>' . esc_html($formatted_start);
@@ -182,15 +182,28 @@ function conbook_event_organizer_shortcode($atts) {
 
     $author_id = $event->post_author;
     $user_info = get_userdata($author_id);
-    $organizer = $user_info ? $user_info->display_name : 'Unknown Organizer';
+
+    if (!$user_info) {
+        $organizer_name = 'Unknown Organizer';
+        $organizer_email = '';
+    } else {
+        $organizer_name = $user_info->display_name;
+        $organizer_email = $user_info->user_email;
+    }
 
     $output = '<div class="event-organizer">';
-    $output .= '<strong>Organizer: </strong>' . esc_html($organizer);
+    $output .= '<strong>Organizer: </strong>' . esc_html($organizer_name);
+    
+    if ($organizer_email) {
+        $output .= '<br><strong>Email: </strong><a href="mailto:' . esc_attr($organizer_email) . '">' . esc_html($organizer_email) . '</a>';
+    }
+
     $output .= '</div>';
 
     return $output;
 }
 add_shortcode('event-organizer', 'conbook_event_organizer_shortcode');
+
 
 // -------------------------------
 // Shortcode: [event-image]
