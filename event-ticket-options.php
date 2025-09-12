@@ -4,6 +4,8 @@
 // Uses GET parameter 'event-slug'
 // -------------------------------
 function conbook_event_ticket_options_shortcode($atts) {
+    global $wpdb;
+
     // Get the event slug from URL ?event-slug=
     $slug = sanitize_text_field($_GET['event-slug'] ?? '');
     if (!$slug) return '';
@@ -14,8 +16,16 @@ function conbook_event_ticket_options_shortcode($atts) {
 
     $post_id = $event->ID;
 
-    $tickets = get_post_meta($post_id, '_ticket_options', true);
-    if (empty($tickets) || !is_array($tickets)) return '<div class="event-tickets">No tickets available.</div>';
+    // Load tickets (from DB)
+    $tickets_table = $wpdb->prefix . 'event_tickets';
+    $tickets = $wpdb->get_results(
+        $wpdb->prepare("SELECT * FROM $tickets_table WHERE event_id = %d", $post_id),
+        ARRAY_A
+    );
+
+    if (empty($tickets)) {
+        return '<div class="event-tickets">No tickets available.</div>';
+    }
 
     $output = '<div class="event-tickets"><strong>Ticket Options:</strong><ul>';
     foreach ($tickets as $ticket) {

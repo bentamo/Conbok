@@ -38,15 +38,10 @@ require_once 'events-cpt.php';
 require_once 'qr-scanner.php';
 require_once 'qr-generator.php';
 
-// Event Landing Page
-require_once 'event-title.php';
-require_once 'event-date.php';
-require_once 'event-time.php';
-require_once 'event-location.php';
-require_once 'event-ticket-options.php';
-require_once 'event-image.php';
-require_once 'event-description.php';
-require_once 'event-organizer.php';
+// Event Page
+require_once 'event-details.php';
+
+// Personal Page(?)
 require_once 'user-upcoming-events.php';
 require_once 'user-past-events.php';
 
