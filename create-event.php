@@ -145,7 +145,7 @@ add_shortcode('create-event', function ($atts = []) {
     .image-slot { border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; cursor: pointer; }
     .image-slot:hover { border-color: #888; }
     .image-slot input[type=file]{ position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-    .image-slot img{ position: absolute; width: 100%; height: 100%; object-fit: cover; display: none; }
+    .image-slot img{ position: absolute; width: 100%; height: 100%; object-fit: cover; aspect-ratio: 1/1; display: none; }
     .upload-text{ color: #888; padding: .5rem; text-align: center; }
 
     .image-slot .remove-image-btn {
@@ -177,7 +177,7 @@ add_shortcode('create-event', function ($atts = []) {
     .tickets-list { display:grid; gap:.5rem; }
     .ticket-item { display:grid; grid-template-columns:2fr 1fr auto; gap:.5rem; align-items:center; }
     .remove-ticket { background:none; border:none; color:#c00; font-size:1.2rem; cursor:pointer; }
-    .add-ticket-btn { margin-top:0.5rem; padding:.5rem .75rem; border:1px solid #ccc; background:#fff; border-radius:.375rem; cursor:pointer; }
+    .add-ticket-btn { margin-top:0.5rem; padding:.5rem .75rem; border:1px solid #ccc; background:#fff; color:#333; border-radius:.375rem; cursor:pointer; }
     .add-ticket-btn:hover { background:#f0f0f0; }
 
     /* Submit */
