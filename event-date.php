@@ -19,9 +19,9 @@ function conbook_event_date_shortcode($atts) {
 
     if (!$start_date) return '';
 
-    // Format start and end dates
-    $formatted_start = date('F j, Y', strtotime($start_date));
-    $formatted_end   = $end_date ? date('F j, Y', strtotime($end_date)) : '';
+    // Format start and end dates as MM/DD/YYYY
+    $formatted_start = date('m/d/Y', strtotime($start_date));
+    $formatted_end   = $end_date ? date('m/d/Y', strtotime($end_date)) : '';
 
     $output = '<div class="event-date">';
     $output .= '<strong>Date: </strong>' . esc_html($formatted_start);
