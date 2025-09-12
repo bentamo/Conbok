@@ -70,13 +70,25 @@ function conbook_handle_create_event() {
     ]);
 
     if ($event_id) {
-        // Save custom fields
+    // Save custom fields
         update_post_meta($event_id, '_start_date', $start_date);
         update_post_meta($event_id, '_end_date', $end_date);
         update_post_meta($event_id, '_start_time', $start_time);
         update_post_meta($event_id, '_end_time', $end_time);
         update_post_meta($event_id, '_location', $location);
-        update_post_meta($event_id, '_ticket_options', $tickets);
+
+        // Insert tickets directly into custom table
+        global $wpdb;
+        $table_tickets = $wpdb->prefix . 'event_tickets';
+
+        foreach ($tickets as $ticket) {
+            $wpdb->insert($table_tickets, [
+                'event_id'    => $event_id,
+                'name'        => $ticket['name'],
+                'description' => '', // optional, you can extend form later
+                'price'       => $ticket['price'],
+            ]);
+        }
 
         // Handle image upload
         if (!empty($_FILES['event_image']['name'])) {
@@ -113,7 +125,7 @@ function conbook_delete_event_image($post_id) {
 add_action('before_delete_post', 'conbook_delete_event_image');
 
 // -------------------------------
-// 5. Admin Meta Box for Event Details
+// 5. Admin Meta Box for Event Details (Tickets + Registrants)
 // -------------------------------
 function conbook_add_event_metaboxes() {
     add_meta_box(
@@ -128,85 +140,179 @@ function conbook_add_event_metaboxes() {
 add_action('add_meta_boxes', 'conbook_add_event_metaboxes');
 
 function conbook_render_event_metabox($post) {
+    global $wpdb;
     wp_nonce_field('conbook_save_event_meta', 'conbook_event_meta_nonce');
 
+    // Load event meta
     $start_date = get_post_meta($post->ID, '_start_date', true);
     $end_date   = get_post_meta($post->ID, '_end_date', true);
     $start_time = get_post_meta($post->ID, '_start_time', true);
     $end_time   = get_post_meta($post->ID, '_end_time', true);
     $location   = get_post_meta($post->ID, '_location', true);
-    $tickets    = get_post_meta($post->ID, '_ticket_options', true) ?: [];
 
+    // Load tickets (from DB)
+    $tickets_table = $wpdb->prefix . 'event_tickets';
+    $tickets = $wpdb->get_results(
+        $wpdb->prepare("SELECT * FROM $tickets_table WHERE event_id = %d", $post->ID),
+        ARRAY_A
+    );
+
+    // Load registrants
+    $registrations_table = $wpdb->prefix . 'event_registrations';
+    $registrants = $wpdb->get_results(
+        $wpdb->prepare("SELECT * FROM $registrations_table WHERE event_id = %d", $post->ID),
+        ARRAY_A
+    );
     ?>
+    <h3>General Info</h3>
+    <p><label>Start Date:</label><br>
+        <input type="date" name="start_date" value="<?php echo esc_attr($start_date); ?>"></p>
+    <p><label>End Date:</label><br>
+        <input type="date" name="end_date" value="<?php echo esc_attr($end_date); ?>"></p>
+    <p><label>Start Time:</label><br>
+        <input type="time" name="start_time" value="<?php echo esc_attr($start_time); ?>"></p>
+    <p><label>End Time:</label><br>
+        <input type="time" name="end_time" value="<?php echo esc_attr($end_time); ?>"></p>
+    <p><label>Location:</label><br>
+        <input type="text" name="location" style="width:100%;" value="<?php echo esc_attr($location); ?>"></p>
+
+    <h3>Tickets</h3>
+    <table class="widefat" id="tickets-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php if ($tickets): ?>
+            <?php foreach ($tickets as $ticket): ?>
+                <tr>
+                    <td><input type="text" name="ticket_name_<?php echo $ticket['id']; ?>" value="<?php echo esc_attr($ticket['name']); ?>"></td>
+                    <td><input type="number" step="0.01" name="ticket_price_<?php echo $ticket['id']; ?>" value="<?php echo esc_attr($ticket['price']); ?>"></td>
+                    <td><input type="text" name="ticket_desc_<?php echo $ticket['id']; ?>" value="<?php echo esc_attr($ticket['description']); ?>"></td>
+                </tr>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <tr><td colspan="3">No tickets yet.</td></tr>
+        <?php endif; ?>
+        </tbody>
+    </table>
+
     <p>
-        <label>Start Date:</label><br>
-        <input type="date" name="start_date" value="<?php echo esc_attr($start_date); ?>">
-    </p>
-    <p>
-        <label>End Date:</label><br>
-        <input type="date" name="end_date" value="<?php echo esc_attr($end_date); ?>">
-    </p>
-    <p>
-        <label>Start Time:</label><br>
-        <input type="time" name="start_time" value="<?php echo esc_attr($start_time); ?>">
-    </p>
-    <p>
-        <label>End Time:</label><br>
-        <input type="time" name="end_time" value="<?php echo esc_attr($end_time); ?>">
-    </p>
-    <p>
-        <label>Location:</label><br>
-        <input type="text" name="location" value="<?php echo esc_attr($location); ?>" style="width:100%;">
+        <button type="button" class="button" id="add-ticket-row">+ Add Ticket</button>
     </p>
 
-    <h4>Tickets</h4>
-    <?php if (!empty($tickets)) : ?>
-        <?php foreach ($tickets as $i => $ticket) : ?>
-            <p>
-                <input type="text" name="ticket_name_<?php echo $i; ?>" value="<?php echo esc_attr($ticket['name']); ?>" placeholder="Ticket Name">
-                <input type="number" step="0.01" name="ticket_price_<?php echo $i; ?>" value="<?php echo esc_attr($ticket['price']); ?>" placeholder="Price">
-            </p>
-        <?php endforeach; ?>
-    <?php else: ?>
-        <p>No tickets yet.</p>
-    <?php endif; ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addBtn = document.getElementById('add-ticket-row');
+        const tableBody = document.querySelector('#tickets-table tbody');
 
-    <p><strong>Created by:</strong>
-        <?php 
-        $author_id = $post->post_author;
-        $user_info = get_userdata($author_id);
-        echo esc_html($user_info ? $user_info->display_name : "User ID: $author_id");
-        ?>
-    </p>
+        addBtn.addEventListener('click', function() {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="text" name="new_ticket_name[]" placeholder="New Ticket Name"></td>
+                <td><input type="number" step="0.01" name="new_ticket_price[]" placeholder="0.00"></td>
+                <td><input type="text" name="new_ticket_desc[]" placeholder="Description"></td>
+            `;
+            tableBody.appendChild(row);
+        });
+    });
+    </script>
+
+    <h3>Registrants</h3>
+    <table class="widefat">
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>Ticket ID</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php if ($registrants): ?>
+            <?php foreach ($registrants as $r): ?>
+                <tr>
+                    <td><?php echo esc_html($r['user_id']); ?></td>
+                    <td><?php echo esc_html($r['ticket_id']); ?></td>
+                    <td>
+                        <select name="reg_status_<?php echo $r['id']; ?>">
+                            <option value="pending"  <?php selected($r['status'], 'pending'); ?>>Pending</option>
+                            <option value="accepted" <?php selected($r['status'], 'accepted'); ?>>Accepted</option>
+                            <option value="declined" <?php selected($r['status'], 'declined'); ?>>Declined</option>
+                        </select>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <tr><td colspan="3">No registrants yet.</td></tr>
+        <?php endif; ?>
+        </tbody>
+    </table>
     <?php
 }
 
 function conbook_save_event_meta($post_id) {
+    global $wpdb;
     if (!isset($_POST['conbook_event_meta_nonce']) ||
         !wp_verify_nonce($_POST['conbook_event_meta_nonce'], 'conbook_save_event_meta')) {
         return;
     }
-
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
     if (!current_user_can('edit_post', $post_id)) return;
 
+    // Save general info
     update_post_meta($post_id, '_start_date', sanitize_text_field($_POST['start_date'] ?? ''));
     update_post_meta($post_id, '_end_date', sanitize_text_field($_POST['end_date'] ?? ''));
     update_post_meta($post_id, '_start_time', sanitize_text_field($_POST['start_time'] ?? ''));
     update_post_meta($post_id, '_end_time', sanitize_text_field($_POST['end_time'] ?? ''));
     update_post_meta($post_id, '_location', sanitize_text_field($_POST['location'] ?? ''));
 
-    $tickets = [];
+    // Update existing tickets
+    $tickets_table = $wpdb->prefix . 'event_tickets';
     foreach ($_POST as $key => $value) {
         if (strpos($key, 'ticket_name_') === 0) {
-            $i = str_replace('ticket_name_', '', $key);
-            $tickets[] = [
-                'name'  => sanitize_text_field($value),
-                'price' => floatval($_POST['ticket_price_' . $i] ?? 0),
-            ];
+            $id = intval(str_replace('ticket_name_', '', $key));
+            $name = sanitize_text_field($_POST['ticket_name_' . $id] ?? '');
+            $price = floatval($_POST['ticket_price_' . $id] ?? 0);
+            $desc = sanitize_text_field($_POST['ticket_desc_' . $id] ?? '');
+            $wpdb->update($tickets_table,
+                ['name' => $name, 'price' => $price, 'description' => $desc],
+                ['id' => $id]
+            );
         }
     }
-    update_post_meta($post_id, '_ticket_options', $tickets);
+
+    // Insert new tickets
+    if (!empty($_POST['new_ticket_name'])) {
+        foreach ($_POST['new_ticket_name'] as $i => $name) {
+            $name = sanitize_text_field($name);
+            if ($name) { // only insert if name provided
+                $price = floatval($_POST['new_ticket_price'][$i] ?? 0);
+                $desc  = sanitize_text_field($_POST['new_ticket_desc'][$i] ?? '');
+                $wpdb->insert($tickets_table, [
+                    'event_id'    => $post_id,
+                    'name'        => $name,
+                    'price'       => $price,
+                    'description' => $desc
+                ]);
+            }
+        }
+    }
+
+    // Update registrant statuses
+    $registrations_table = $wpdb->prefix . 'event_registrations';
+    foreach ($_POST as $key => $value) {
+        if (strpos($key, 'reg_status_') === 0) {
+            $id = intval(str_replace('reg_status_', '', $key));
+            $status = sanitize_text_field($value);
+            $wpdb->update($registrations_table,
+                ['status' => $status],
+                ['id' => $id]
+            );
+        }
+    }
 }
 add_action('save_post_event', 'conbook_save_event_meta');
 
@@ -227,3 +333,32 @@ function conbook_render_event_author_column($column, $post_id) {
     }
 }
 add_action('manage_event_posts_custom_column', 'conbook_render_event_author_column', 10, 2);
+
+// -------------------------------
+// 7. Add Registrants Column in Admin List
+// -------------------------------
+function conbook_add_event_registrants_column($columns) {
+    $columns['event_registrants'] = 'Registrants';
+    return $columns;
+}
+add_filter('manage_event_posts_columns', 'conbook_add_event_registrants_column');
+
+function conbook_render_event_registrants_column($column, $post_id) {
+    if ($column === 'event_registrants') {
+        global $wpdb;
+        $table_registrations = $wpdb->prefix . 'event_registrations';
+
+        // Count how many people registered for this event
+        $count = $wpdb->get_var(
+            $wpdb->prepare("SELECT COUNT(*) FROM $table_registrations WHERE event_id = %d", $post_id)
+        );
+
+        if ($count > 0) {
+            // Link to filterable Registrations (you can later build a full admin page if needed)
+            echo '<strong>' . intval($count) . '</strong> registered';
+        } else {
+            echo '0';
+        }
+    }
+}
+add_action('manage_event_posts_custom_column', 'conbook_render_event_registrants_column', 10, 2);
