@@ -91,7 +91,7 @@ function conbook_handle_create_event() {
         }
     }
 
-    wp_redirect(home_url('/'));
+    wp_redirect(home_url('/view-events/'));
     exit;
 }
 add_action('admin_post_conbook_create_event', 'conbook_handle_create_event');

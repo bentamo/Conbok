@@ -72,6 +72,11 @@ function conbook_user_upcoming_events_shortcode($atts) {
             transform: translateY(-4px);
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         }
+        .event-card,
+        .event-card * {
+            text-decoration: none !important;
+            color: inherit !important;
+        }        
         .event-card img {
             width: 100%;
             height: 250px;
@@ -80,6 +85,7 @@ function conbook_user_upcoming_events_shortcode($atts) {
         .event-card-content {
             padding: 15px;
             text-align: center;
+            background: #f2f4f7;
         }
         .event-date {
             font-weight: bold;
