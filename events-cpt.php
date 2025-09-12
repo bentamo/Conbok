@@ -148,8 +148,14 @@ function conbook_render_event_metabox($post) {
     $start_time = get_post_meta($post->ID, '_start_time', true);
     $end_time   = get_post_meta($post->ID, '_end_time', true);
     $location   = get_post_meta($post->ID, '_location', true);
-    $tickets    = get_post_meta($post->ID, '_ticket_options', true) ?: [];
 
+    // 🔑 Fetch tickets from custom table instead of post meta
+    global $wpdb;
+    $table_tickets = $wpdb->prefix . 'event_tickets';
+    $tickets = $wpdb->get_results(
+        $wpdb->prepare("SELECT * FROM $table_tickets WHERE event_id = %d", $post->ID),
+        ARRAY_A
+    );
     ?>
     <p>
         <label>Start Date:</label><br>
@@ -174,10 +180,10 @@ function conbook_render_event_metabox($post) {
 
     <h4>Tickets</h4>
     <?php if (!empty($tickets)) : ?>
-        <?php foreach ($tickets as $i => $ticket) : ?>
+        <?php foreach ($tickets as $ticket) : ?>
             <p>
-                <input type="text" name="ticket_name_<?php echo $i; ?>" value="<?php echo esc_attr($ticket['name']); ?>" placeholder="Ticket Name">
-                <input type="number" step="0.01" name="ticket_price_<?php echo $i; ?>" value="<?php echo esc_attr($ticket['price']); ?>" placeholder="Price">
+                <input type="text" value="<?php echo esc_attr($ticket['name']); ?>" readonly>
+                <input type="number" step="0.01" value="<?php echo esc_attr($ticket['price']); ?>" readonly>
             </p>
         <?php endforeach; ?>
     <?php else: ?>
