@@ -4,9 +4,10 @@ function event_registration() {
 
     // Default values
     $event_title = 'Event';
-    $event_id = 0;
-    $user_id  = 0;
+    $event_id    = 0;
+    $user_id     = 0;
     $ticket_options = [];
+    $payment_options = [];
 
     // Get event slug from URL and sanitize
     $event_slug = isset($_GET['event-slug']) ? sanitize_text_field($_GET['event-slug']) : '';
@@ -17,17 +18,32 @@ function event_registration() {
         $event_title = $event_post->post_title;
         $user_id     = intval($event_post->post_author); // Event creator ID
 
-        // Retrieve ticket options from post meta
-        $tickets = get_post_meta($event_id, '_ticket_options', true);
-        if (!empty($tickets) && is_array($tickets)) {
+        // ✅ Retrieve tickets from event_tickets table
+        $tickets = $wpdb->get_results(
+            $wpdb->prepare("SELECT id, name, price FROM {$wpdb->prefix}event_tickets WHERE event_id = %d", $event_id),
+            ARRAY_A
+        );
+        if (!empty($tickets)) {
             foreach ($tickets as $t) {
-                $ticket_options[] = $t['name'] . ' (Php ' . number_format(floatval($t['price']), 2) . ')';
+                $ticket_options[$t['id']] = $t['name'] . ' (Php ' . number_format(floatval($t['price']), 2) . ')';
+            }
+        }
+
+        // ✅ Retrieve payment methods from event_payment_methods table
+        $payments = $wpdb->get_results(
+            $wpdb->prepare("SELECT id, name FROM {$wpdb->prefix}event_payment_methods WHERE event_id = %d", $event_id),
+            ARRAY_A
+        );
+        if (!empty($payments)) {
+            foreach ($payments as $p) {
+                $payment_options[$p['id']] = $p['name'];
             }
         }
     }
 
     // Fallback if no tickets available
-    if (empty($ticket_options)) $ticket_options = ['No tickets available'];
+    if (empty($ticket_options)) $ticket_options = [0 => 'No tickets available'];
+    if (empty($payment_options)) $payment_options = [0 => 'No payment methods available'];
 
     // Get current logged-in user info
     $current_user = wp_get_current_user();
@@ -42,9 +58,9 @@ function event_registration() {
         wp_verify_nonce($_POST['event_registration_nonce'], 'event_registration')) {
 
         // Sanitize user inputs
-        $ticket_type    = sanitize_text_field($_POST['ticket_type']);
-        $payment_method = sanitize_text_field($_POST['payment_method']);
-        $proof_id       = 0;
+        $ticket_id         = intval($_POST['ticket_id']);
+        $payment_method_id = intval($_POST['payment_method_id']);
+        $proof_id          = 0;
 
         // Handle file upload securely
         if (!empty($_FILES['proof_of_payment']['name'])) {
@@ -66,20 +82,15 @@ function event_registration() {
 
         // Insert registration into custom table
         $table = $wpdb->prefix . 'event_registrations';
-        $result = $wpdb->insert($table, [
-            'user_id'            => $get_current_user_id(),
-            'event_id'           => $event_id,
-            'ticket_type'        => $ticket_type,
-            'payment_method'     => $payment_method,
-            'proof_attachment_id'=> $proof_id,
-            'created_at'         => current_time('mysql')
+        $wpdb->insert($table, [
+            'user_id'           => get_current_user_id(),
+            'event_id'          => $event_id,
+            'ticket_id'         => $ticket_id,
+            'payment_method_id' => $payment_method_id,
+            'proof_id'          => $proof_id,
+            'status'            => 'pending',
+            'created_at'        => current_time('mysql')
         ]);
-
-        if ($result === false) {
-            echo 'DB insert failed: ' . $wpdb->last_error;
-        } else {
-            echo 'DB insert success. Inserted ID: ' . $wpdb->insert_id;
-        }
 
         // Success message with auto-redirect
         $redirect_url = 'http://localhost/conbook/event-page/?event-slug=' . urlencode($event_slug);
@@ -96,7 +107,6 @@ function event_registration() {
     // Display registration form
     ob_start(); ?>
     <style>
-        /* Form container styling */
         .form-box {
             width:50%;
             margin:30px auto;
@@ -112,14 +122,12 @@ function event_registration() {
             width:100%; min-height:48px; padding:0 12px; margin-bottom:18px;
             border:1px solid #ccc; border-radius:8px; font-size:1rem; font-weight:400; line-height:1.5; box-sizing:border-box;
         }
-        /* Read-only input styling */
         .form-box input[readonly] {
             background-color: #f0f0f0;
             border-color: #999;
             color: #555;
             cursor: not-allowed;
         }
-        /* Custom file upload label */
         .form-box .file-upload {
             display:block; width:100%; min-height:48px; padding:14px; margin-bottom:18px;
             border:2px dashed #ccc; border-radius:8px; text-align:center; cursor:pointer; color:#555;
@@ -127,7 +135,6 @@ function event_registration() {
         }
         .form-box .file-upload:hover { border-color:#7d3fff; background:#f9f7ff; }
         .form-box input[type="file"] {display:none;}
-        /* Submit button styling */
         .form-box input[type="submit"] {
             width:100%; min-height:48px; border:none; border-radius:40px;
             background:linear-gradient(135deg,rgb(255,75,43),rgb(125,63,255));
@@ -141,7 +148,6 @@ function event_registration() {
             <?php wp_nonce_field('event_registration', 'event_registration_nonce'); ?>
             <h3>Register for <?php echo esc_html($event_title); ?></h3>
 
-            <!-- User info fields (read-only) -->
             <label for="first_name">First Name</label>
             <input type="text" id="first_name" name="first_name" required value="<?php echo esc_attr($first_name); ?>" readonly>
 
@@ -155,20 +161,22 @@ function event_registration() {
             <input type="text" id="contact_number" name="contact_number" required value="<?php echo esc_attr($contact); ?>" readonly>
 
             <!-- Ticket selection -->
-            <label for="ticket_type">Ticket Type</label>
-            <select id="ticket_type" name="ticket_type" required>
-                <?php foreach ($ticket_options as $opt): ?>
-                    <option value="<?php echo esc_attr($opt); ?>"><?php echo esc_html($opt); ?></option>
+            <label for="ticket_id">Ticket Type</label>
+            <select id="ticket_id" name="ticket_id" required>
+                <?php foreach ($ticket_options as $id => $opt): ?>
+                    <option value="<?php echo esc_attr($id); ?>"><?php echo esc_html($opt); ?></option>
                 <?php endforeach; ?>
             </select>
 
             <!-- Payment options -->
-            <label for="payment_method">Payment Method</label>
-            <select id="payment_method" name="payment_method" required>
-                <option value="Bank Transfer">Bank Transfer</option>
+            <label for="payment_method_id">Payment Method</label>
+            <select id="payment_method_id" name="payment_method_id" required>
+                <?php foreach ($payment_options as $id => $name): ?>
+                    <option value="<?php echo esc_attr($id); ?>"><?php echo esc_html($name); ?></option>
+                <?php endforeach; ?>
             </select>
 
-            <!-- File upload for proof -->
+            <!-- File upload -->
             <label for="proof_of_payment">Proof of Payment</label>
             <label class="file-upload" for="proof_of_payment">📤 Click or drag file here</label>
             <input type="file" id="proof_of_payment" name="proof_of_payment" accept="image/*" required>
@@ -178,7 +186,6 @@ function event_registration() {
     </div>
 
     <script>
-        // Update file upload label when user selects a file
         const fileInput = document.getElementById('proof_of_payment');
         const uploadLabel = document.querySelector('.file-upload');
         fileInput.addEventListener('change', function(){

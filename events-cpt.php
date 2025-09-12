@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Events CPT + Frontend Form
  * Description: Custom Events post type with a frontend [create-event] form (image + tickets supported).
- * Version: 1.5
+ * Version: 1.0
  * Author: Rae
  */
 

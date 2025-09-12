@@ -40,14 +40,13 @@ function event_tables_create() {
     // Event Registrations
     $sql_registrations = "CREATE TABLE $table_registrations (
         id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id BIGINT(20) UNSIGNED NOT NULL,
         event_id BIGINT(20) UNSIGNED NOT NULL,
         ticket_id BIGINT(20) UNSIGNED NOT NULL,
-        user_id BIGINT(20) UNSIGNED NOT NULL,
         payment_method_id BIGINT(20) UNSIGNED NOT NULL,
         proof_id BIGINT(20) UNSIGNED DEFAULT NULL,
         status ENUM('pending','accepted','declined') NOT NULL DEFAULT 'pending',
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
         KEY idx_event_id (event_id),
         KEY idx_ticket_id (ticket_id),
