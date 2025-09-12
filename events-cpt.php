@@ -60,6 +60,18 @@ function conbook_handle_create_event() {
         }
     }
 
+    // Payment Methods
+    $payments = [];
+    foreach ($_POST as $key => $value) {
+        if (strpos($key, 'payment_name_') === 0) {
+            $i = str_replace('payment_name_', '', $key);
+            $payments[] = [
+                'name'    => sanitize_text_field($value),
+                'details' => sanitize_textarea_field($_POST['payment_details_' . $i] ?? ''),
+            ];
+        }
+    }
+
     // Insert Event post with logged-in user as author
     $event_id = wp_insert_post([
         'post_type'    => 'event',
@@ -70,23 +82,33 @@ function conbook_handle_create_event() {
     ]);
 
     if ($event_id) {
-    // Save custom fields
+        // Save custom fields
         update_post_meta($event_id, '_start_date', $start_date);
         update_post_meta($event_id, '_end_date', $end_date);
         update_post_meta($event_id, '_start_time', $start_time);
         update_post_meta($event_id, '_end_time', $end_time);
         update_post_meta($event_id, '_location', $location);
 
-        // Insert tickets directly into custom table
         global $wpdb;
-        $table_tickets = $wpdb->prefix . 'event_tickets';
 
+        // Insert tickets
+        $table_tickets  = $wpdb->prefix . 'event_tickets';
         foreach ($tickets as $ticket) {
             $wpdb->insert($table_tickets, [
                 'event_id'    => $event_id,
                 'name'        => $ticket['name'],
-                'description' => '', // optional, you can extend form later
+                'description' => '', // optional
                 'price'       => $ticket['price'],
+            ]);
+        }
+
+        // Insert payment methods
+        $table_payments = $wpdb->prefix . 'event_payment_methods';
+        foreach ($payments as $payment) {
+            $wpdb->insert($table_payments, [
+                'event_id' => $event_id,
+                'name'     => $payment['name'],
+                'details'  => $payment['details'],
             ]);
         }
 
