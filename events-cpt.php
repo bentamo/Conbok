@@ -175,17 +175,26 @@ function conbook_render_event_metabox($post) {
     $end_time   = get_post_meta($post->ID, '_end_time', true);
     $location   = get_post_meta($post->ID, '_location', true);
 
-    // Load tickets (from DB)
-    $tickets_table = $wpdb->prefix . 'event_tickets';
+    // Table names
+    $table_tickets       = $wpdb->prefix . 'event_tickets';
+    $table_payments      = $wpdb->prefix . 'event_payment_methods';
+    $table_registrations = $wpdb->prefix . 'event_registrations';
+
+    // Load tickets
     $tickets = $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM $tickets_table WHERE event_id = %d", $post->ID),
+        $wpdb->prepare("SELECT * FROM $table_tickets WHERE event_id = %d", $post->ID),
         ARRAY_A
     );
 
     // Load registrants
-    $registrations_table = $wpdb->prefix . 'event_registrations';
     $registrants = $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM $registrations_table WHERE event_id = %d", $post->ID),
+        $wpdb->prepare("SELECT * FROM $table_registrations WHERE event_id = %d", $post->ID),
+        ARRAY_A
+    );
+
+    // Load payment methods
+    $payments = $wpdb->get_results(
+        $wpdb->prepare("SELECT * FROM $table_payments WHERE event_id = %d", $post->ID),
         ARRAY_A
     );
     ?>
@@ -229,19 +238,53 @@ function conbook_render_event_metabox($post) {
         <button type="button" class="button" id="add-ticket-row">+ Add Ticket</button>
     </p>
 
+    <h3>Payment Methods</h3>
+    <table class="widefat" id="payments-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php if ($payments): ?>
+            <?php foreach ($payments as $p): ?>
+                <tr>
+                    <td><input type="text" name="payment_name_<?php echo $p['id']; ?>" value="<?php echo esc_attr($p['name']); ?>"></td>
+                    <td><input type="text" name="payment_details_<?php echo $p['id']; ?>" value="<?php echo esc_attr($p['details']); ?>"></td>
+                </tr>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <tr><td colspan="2">No payment methods yet.</td></tr>
+        <?php endif; ?>
+        </tbody>
+    </table>
+
+    <p>
+        <button type="button" class="button" id="add-payment-row">+ Add Payment Method</button>
+    </p>
+
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const addBtn = document.getElementById('add-ticket-row');
-        const tableBody = document.querySelector('#tickets-table tbody');
-
-        addBtn.addEventListener('click', function() {
+        // Add Ticket Row
+        document.getElementById('add-ticket-row').addEventListener('click', function() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td><input type="text" name="new_ticket_name[]" placeholder="New Ticket Name"></td>
                 <td><input type="number" step="0.01" name="new_ticket_price[]" placeholder="0.00"></td>
                 <td><input type="text" name="new_ticket_desc[]" placeholder="Description"></td>
             `;
-            tableBody.appendChild(row);
+            document.querySelector('#tickets-table tbody').appendChild(row);
+        });
+
+        // Add Payment Row
+        document.getElementById('add-payment-row').addEventListener('click', function() {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="text" name="new_payment_name[]" placeholder="Payment Method"></td>
+                <td><input type="text" name="new_payment_details[]" placeholder="Details"></td>
+            `;
+            document.querySelector('#payments-table tbody').appendChild(row);
         });
     });
     </script>
@@ -287,6 +330,11 @@ function conbook_save_event_meta($post_id) {
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
     if (!current_user_can('edit_post', $post_id)) return;
 
+    // Table names
+    $table_tickets       = $wpdb->prefix . 'event_tickets';
+    $table_payments      = $wpdb->prefix . 'event_payment_methods';
+    $table_registrations = $wpdb->prefix . 'event_registrations';
+
     // Save general info
     update_post_meta($post_id, '_start_date', sanitize_text_field($_POST['start_date'] ?? ''));
     update_post_meta($post_id, '_end_date', sanitize_text_field($_POST['end_date'] ?? ''));
@@ -295,14 +343,13 @@ function conbook_save_event_meta($post_id) {
     update_post_meta($post_id, '_location', sanitize_text_field($_POST['location'] ?? ''));
 
     // Update existing tickets
-    $tickets_table = $wpdb->prefix . 'event_tickets';
     foreach ($_POST as $key => $value) {
         if (strpos($key, 'ticket_name_') === 0) {
             $id = intval(str_replace('ticket_name_', '', $key));
             $name = sanitize_text_field($_POST['ticket_name_' . $id] ?? '');
             $price = floatval($_POST['ticket_price_' . $id] ?? 0);
             $desc = sanitize_text_field($_POST['ticket_desc_' . $id] ?? '');
-            $wpdb->update($tickets_table,
+            $wpdb->update($table_tickets,
                 ['name' => $name, 'price' => $price, 'description' => $desc],
                 ['id' => $id]
             );
@@ -313,10 +360,10 @@ function conbook_save_event_meta($post_id) {
     if (!empty($_POST['new_ticket_name'])) {
         foreach ($_POST['new_ticket_name'] as $i => $name) {
             $name = sanitize_text_field($name);
-            if ($name) { // only insert if name provided
+            if ($name) {
                 $price = floatval($_POST['new_ticket_price'][$i] ?? 0);
                 $desc  = sanitize_text_field($_POST['new_ticket_desc'][$i] ?? '');
-                $wpdb->insert($tickets_table, [
+                $wpdb->insert($table_tickets, [
                     'event_id'    => $post_id,
                     'name'        => $name,
                     'price'       => $price,
@@ -326,13 +373,40 @@ function conbook_save_event_meta($post_id) {
         }
     }
 
+    // Update existing payments
+    foreach ($_POST as $key => $value) {
+        if (strpos($key, 'payment_name_') === 0) {
+            $id = intval(str_replace('payment_name_', '', $key));
+            $name = sanitize_text_field($_POST['payment_name_' . $id] ?? '');
+            $details = sanitize_textarea_field($_POST['payment_details_' . $id] ?? '');
+            $wpdb->update($table_payments,
+                ['name' => $name, 'details' => $details],
+                ['id' => $id]
+            );
+        }
+    }
+
+    // Insert new payments
+    if (!empty($_POST['new_payment_name'])) {
+        foreach ($_POST['new_payment_name'] as $i => $name) {
+            $name = sanitize_text_field($name);
+            if ($name) {
+                $details = sanitize_textarea_field($_POST['new_payment_details'][$i] ?? '');
+                $wpdb->insert($table_payments, [
+                    'event_id' => $post_id,
+                    'name'     => $name,
+                    'details'  => $details
+                ]);
+            }
+        }
+    }
+
     // Update registrant statuses
-    $registrations_table = $wpdb->prefix . 'event_registrations';
     foreach ($_POST as $key => $value) {
         if (strpos($key, 'reg_status_') === 0) {
             $id = intval(str_replace('reg_status_', '', $key));
             $status = sanitize_text_field($value);
-            $wpdb->update($registrations_table,
+            $wpdb->update($table_registrations,
                 ['status' => $status],
                 ['id' => $id]
             );
