@@ -11,23 +11,30 @@ function conbook_user_upcoming_events_shortcode($atts) {
 
     $user_id = get_current_user_id();
 
-    // Query upcoming events by this user
+    // Query all future and ongoing events (based on start date/time)
     $today = date('Y-m-d');
+
     $args = [
         'post_type'      => 'event',
         'posts_per_page' => -1,
         'post_status'    => 'publish',
         'author'         => $user_id,
-        'meta_key'       => '_start_date',
-        'orderby'        => 'meta_value',
-        'order'          => 'ASC',
         'meta_query'     => [
-            [
+            'relation' => 'AND',
+            'start_date_clause' => [
                 'key'     => '_start_date',
                 'value'   => $today,
                 'compare' => '>=',
                 'type'    => 'DATE',
             ],
+            'start_time_clause' => [
+                'key'  => '_start_time',
+                'type' => 'TIME',
+            ],
+        ],
+        'orderby' => [
+            'start_date_clause' => 'ASC',
+            'start_time_clause' => 'ASC',
         ],
     ];
 
@@ -37,18 +44,18 @@ function conbook_user_upcoming_events_shortcode($atts) {
         return '<p>No upcoming events found.</p>';
     }
 
-    // Inline style for grid layout
+    // Prepare inline CSS for the event grid/cards
     $output = '<style>
         .user-upcoming-events-wrapper {
             display: flex;
-            justify-content: center; /* center the grid */
+            justify-content: center;
             width: 100%;
         }
         .user-upcoming-events {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 20px;
-            max-width: 900px;   /* keeps it centered nicely */
+            max-width: 900px;
             width: 100%;
         }
         @media (max-width: 768px) {
@@ -63,7 +70,7 @@ function conbook_user_upcoming_events_shortcode($atts) {
             overflow: hidden;
             background: #fff;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            width: 100%; /* fill its grid cell */
+            width: 100%;
             text-decoration: none;
             color: inherit;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -72,11 +79,10 @@ function conbook_user_upcoming_events_shortcode($atts) {
             transform: translateY(-4px);
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         }
-        .event-card,
-        .event-card * {
+        .event-card, .event-card * {
             text-decoration: none !important;
             color: inherit !important;
-        }        
+        }
         .event-card img {
             width: 100%;
             height: 250px;
@@ -98,32 +104,45 @@ function conbook_user_upcoming_events_shortcode($atts) {
         }
     </style>';
 
-    // Build the HTML output
+    // Build HTML output
     $output .= '<div class="user-upcoming-events-wrapper">';
     $output .= '<div class="user-upcoming-events">';
+
+    // Get current timestamp
+    $now = time();
 
     while ($events->have_posts()) {
         $events->the_post();
         $post_id = get_the_ID();
         $title = get_the_title();
 
-        // Get event start date & time
-        $start_date = get_post_meta($post_id, '_start_date', true); 
-        $start_time = get_post_meta($post_id, '_start_time', true); 
-        $datetime_str = $start_date . ' ' . ($start_time ?: '00:00:00');
-        $formatted_start = date('m/d/y • g:i A', strtotime($datetime_str));
+        // Get start and end date/time
+        $start_date = get_post_meta($post_id, '_start_date', true);
+        $start_time = get_post_meta($post_id, '_start_time', true);
+        $end_date   = get_post_meta($post_id, '_end_date', true);
+        $end_time   = get_post_meta($post_id, '_end_time', true);
 
-        // Event slug
+        // Build timestamps
+        $start_datetime = strtotime($start_date . ' ' . ($start_time ?: '00:00:00'));
+        $end_datetime   = strtotime($end_date . ' ' . ($end_time ?: '23:59:59')); // default end of day if empty
+
+        // Skip expired events
+        if ($end_datetime < $now) {
+            continue;
+        }
+
+        // Format start for display
+        $formatted_start = date('m/d/y • g:i A', $start_datetime);
+
+        // Event slug and link
         $event_slug = get_post_field('post_name', $post_id);
-
-        // Build event link
         $event_link = home_url('/event-page-organizer/?event-slug=' . $event_slug);
 
         // Thumbnail fallback
         $image_url = get_the_post_thumbnail_url($post_id, 'medium') 
             ?: 'https://via.placeholder.com/300x300?text=No+Image';
 
-        // Card output (clickable)
+        // Output clickable card
         $output .= '<a href="' . esc_url($event_link) . '" class="event-card">';
         $output .= '<img src="' . esc_url($image_url) . '" alt="' . esc_attr($title) . '">';
         $output .= '<div class="event-card-content">';
