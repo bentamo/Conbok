@@ -48,6 +48,7 @@ require_once 'user-past-events.php';
 // Buttons
 require_once 'btn-back-to-view-events.php';
 require_once 'btn-join-event.php';
+require_once 'btn-manage-event.php';
 
 // Forms
 require_once 'form-event-registration.php';

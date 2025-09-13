@@ -1,10 +1,39 @@
 <?php
 /**
- * Create Event Page Shortcode
+ * Create/Edit Event Page Shortcode
  * Usage: [create-event]
  */
 add_shortcode('create-event', function ($atts = []) {
     $uid = uniqid('event-');
+
+    // Get the event slug from URL query
+    $slug  = isset($_GET['event-slug']) ? sanitize_text_field($_GET['event-slug']) : '';
+    $event = null;
+
+    if ($slug) {
+        $event = get_page_by_path($slug, OBJECT, 'event');
+    }
+
+    // Pre-fill values if editing
+    $value_title       = $event ? esc_attr($event->post_title) : '';
+    $value_description = $event ? esc_textarea($event->post_content) : '';
+    $value_location    = $event ? esc_attr(get_post_meta($event->ID, '_location', true)) : '';
+    $value_start_date  = $event ? esc_attr(get_post_meta($event->ID, '_start_date', true)) : '';
+    $value_end_date    = $event ? esc_attr(get_post_meta($event->ID, '_end_date', true)) : '';
+    $value_start_time  = $event ? esc_attr(get_post_meta($event->ID, '_start_time', true)) : '';
+    $value_end_time    = $event ? esc_attr(get_post_meta($event->ID, '_end_time', true)) : '';
+
+    // Tickets & Payments
+    global $wpdb;
+    $table_tickets  = $wpdb->prefix . 'event_tickets';
+    $table_payments = $wpdb->prefix . 'event_payment_methods';
+
+    $tickets  = $event ? $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_tickets WHERE event_id = %d", $event->ID), ARRAY_A) : [];
+    $payments = $event ? $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_payments WHERE event_id = %d", $event->ID), ARRAY_A) : [];
+
+    // Featured Image
+    $thumbnail_id  = $event ? get_post_thumbnail_id($event->ID) : 0;
+    $thumbnail_url = $thumbnail_id ? wp_get_attachment_url($thumbnail_id) : '';
 
     ob_start(); ?>
 
@@ -19,12 +48,17 @@ add_shortcode('create-event', function ($atts = []) {
             <input type="hidden" name="action" value="conbook_create_event">
             <?php wp_nonce_field('conbook_create_event_nonce', 'conbook_create_event_nonce_field'); ?>
 
+            <?php if ($event): ?>
+                <input type="hidden" name="event_id" value="<?php echo intval($event->ID); ?>">
+            <?php endif; ?>
+
             <!-- Title -->
             <div class="title-container">
                 <input type="text"
                     id="<?php echo esc_attr($uid); ?>-title"
                     name="event-title"
                     placeholder="Enter event title..."
+                    value="<?php echo $value_title; ?>"
                     required />
             </div>
 
@@ -32,10 +66,10 @@ add_shortcode('create-event', function ($atts = []) {
                 <!-- Image Upload -->
                 <div class="image-upload card">
                     <div class="image-slot">
-                        <span class="upload-text">Click to upload</span>
-                        <input type="file" id="<?php echo esc_attr($uid); ?>-image" name="event_image" accept="image/*" required />
-                        <img src="" alt="Preview" class="preview-image" />
-                        <button type="button" class="remove-image-btn">✖</button>
+                        <span class="upload-text" <?php echo $thumbnail_url ? 'style="display:none;"' : ''; ?>>Click to upload</span>
+                        <input type="file" id="<?php echo esc_attr($uid); ?>-image" name="event_image" accept="image/*" <?php echo $thumbnail_url ? '' : 'required'; ?> />
+                        <img src="<?php echo esc_url($thumbnail_url); ?>" alt="Preview" class="preview-image" style="<?php echo $thumbnail_url ? 'display:block;' : 'display:none;'; ?>" />
+                        <button type="button" class="remove-image-btn" style="<?php echo $thumbnail_url ? 'display:block;' : 'display:none;'; ?>">✖</button>
                     </div>
                 </div>
 
@@ -45,12 +79,12 @@ add_shortcode('create-event', function ($atts = []) {
                     <div class="range-group">
                         <div class="range-field">
                             <label for="<?php echo esc_attr($uid); ?>-date-start">Start Date</label>
-                            <input type="date" id="<?php echo esc_attr($uid); ?>-date-start" name="start-date" required />
+                            <input type="date" id="<?php echo esc_attr($uid); ?>-date-start" name="start-date" value="<?php echo $value_start_date; ?>" required />
                         </div>
                         <span class="range-sep">–</span>
                         <div class="range-field">
                             <label for="<?php echo esc_attr($uid); ?>-date-end">End Date</label>
-                            <input type="date" id="<?php echo esc_attr($uid); ?>-date-end" name="end-date" required />
+                            <input type="date" id="<?php echo esc_attr($uid); ?>-date-end" name="end-date" value="<?php echo $value_end_date; ?>" required />
                         </div>
                     </div>
 
@@ -58,12 +92,12 @@ add_shortcode('create-event', function ($atts = []) {
                     <div class="range-group">
                         <div class="range-field">
                             <label for="<?php echo esc_attr($uid); ?>-time-start">Start Time</label>
-                            <input type="time" id="<?php echo esc_attr($uid); ?>-time-start" name="start-time" required />
+                            <input type="time" id="<?php echo esc_attr($uid); ?>-time-start" name="start-time" value="<?php echo $value_start_time; ?>" required />
                         </div>
                         <span class="range-sep">–</span>
                         <div class="range-field">
                             <label for="<?php echo esc_attr($uid); ?>-time-end">End Time</label>
-                            <input type="time" id="<?php echo esc_attr($uid); ?>-time-end" name="end-time" required />
+                            <input type="time" id="<?php echo esc_attr($uid); ?>-time-end" name="end-time" value="<?php echo $value_end_time; ?>" required />
                         </div>
                     </div>
 
@@ -74,13 +108,25 @@ add_shortcode('create-event', function ($atts = []) {
                             id="<?php echo esc_attr($uid); ?>-location"
                             name="location"
                             placeholder="Enter a location..."
+                            value="<?php echo $value_location; ?>"
                             required />
                     </div>
 
                     <!-- Tickets -->
                     <div>
                         <label>Ticket Options <span style="color:red">*</span></label>
-                        <div class="tickets-list"></div>
+                        <div class="tickets-list">
+                            <?php if ($tickets): ?>
+                                <?php foreach ($tickets as $i => $ticket): ?>
+                                    <div class="ticket-item">
+                                        <input type="text" name="ticket_name_<?php echo $i+1; ?>" value="<?php echo esc_attr($ticket['name']); ?>" placeholder="Ticket Name" required />
+                                        <input type="number" name="ticket_price_<?php echo $i+1; ?>" value="<?php echo esc_attr($ticket['price']); ?>" placeholder="Price" min="0" step="0.01" required />
+                                        <textarea name="ticket_description_<?php echo $i+1; ?>" rows="1" placeholder="Ticket Description"><?php echo esc_textarea($ticket['description']); ?></textarea>
+                                        <button type="button" class="remove-ticket">✖</button>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
                         <button type="button" class="add-ticket-btn">➕ Add New Type</button>
                         <p class="ticket-error" style="color:red; display:none;">At least one ticket is required.</p>
                     </div>
@@ -88,7 +134,17 @@ add_shortcode('create-event', function ($atts = []) {
                     <!-- Payment Methods -->
                     <div>
                         <label>Payment Methods <span style="color:red">*</span></label>
-                        <div class="payments-list"></div>
+                        <div class="payments-list">
+                            <?php if ($payments): ?>
+                                <?php foreach ($payments as $i => $p): ?>
+                                    <div class="payment-item">
+                                        <input type="text" name="payment_name_<?php echo $i+1; ?>" value="<?php echo esc_attr($p['name']); ?>" placeholder="Payment Method Name" required />
+                                        <input type="text" name="payment_details_<?php echo $i+1; ?>" value="<?php echo esc_attr($p['details']); ?>" placeholder="Details (e.g. account number, link)" required />
+                                        <button type="button" class="remove-payment">✖</button>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
                         <button type="button" class="add-payment-btn">➕ Add New Method</button>
                         <p class="payment-error" style="color:red; display:none;">At least one payment method is required.</p>
                     </div>
@@ -100,14 +156,16 @@ add_shortcode('create-event', function ($atts = []) {
                             name="description"
                             placeholder="Enter event description..."
                             rows="4"
-                            required></textarea>
+                            required><?php echo $value_description; ?></textarea>
                     </div>
                 </div>
             </div>
 
             <!-- Submit -->
             <div class="create-event-container">
-                <button type="submit" class="create-event-btn">Create Event</button>
+                <button type="submit" class="create-event-btn">
+                    <?php echo $event ? 'Update Event' : 'Create Event'; ?>
+                </button>
             </div>
         </form>
     </div>
@@ -234,7 +292,7 @@ add_shortcode('create-event', function ($atts = []) {
         const ticketsList = root.querySelector('.tickets-list');
         const addTicketBtn = root.querySelector('.add-ticket-btn');
         const ticketError = root.querySelector('.ticket-error');
-        let ticketIdx = 0;
+        let ticketIdx = ticketsList.querySelectorAll('.ticket-item').length;
 
         function addTicket() {
             ticketIdx++;
@@ -248,14 +306,14 @@ add_shortcode('create-event', function ($atts = []) {
             ticketsList.appendChild(item);
             item.querySelector('.remove-ticket').addEventListener('click', () => item.remove());
         }
-        addTicket();
+        if (ticketIdx === 0) addTicket();
         addTicketBtn.addEventListener('click', addTicket);
 
         /* ---------------- Payments ---------------- */
         const paymentsList = root.querySelector('.payments-list');
         const addPaymentBtn = root.querySelector('.add-payment-btn');
         const paymentError = root.querySelector('.payment-error');
-        let paymentIdx = 0;
+        let paymentIdx = paymentsList.querySelectorAll('.payment-item').length;
 
         function addPayment() {
             paymentIdx++;
@@ -268,7 +326,7 @@ add_shortcode('create-event', function ($atts = []) {
             paymentsList.appendChild(item);
             item.querySelector('.remove-payment').addEventListener('click', () => item.remove());
         }
-        addPayment();
+        if (paymentIdx === 0) addPayment();
         addPaymentBtn.addEventListener('click', addPayment);
 
         /* ---------------- Form Validation ---------------- */

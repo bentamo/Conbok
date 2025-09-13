@@ -34,101 +34,107 @@ require_once __DIR__ . '/create-event.php';
 // 3. Handle Frontend Form Submission
 // -------------------------------
 function conbook_handle_create_event() {
-    if (
-        !isset($_POST['conbook_create_event_nonce_field']) ||
-        !wp_verify_nonce($_POST['conbook_create_event_nonce_field'], 'conbook_create_event_nonce')
-    ) {
-        wp_die('Security check failed.');
+    if (!isset($_POST['conbook_create_event_nonce_field']) || 
+        !wp_verify_nonce($_POST['conbook_create_event_nonce_field'], 'conbook_create_event_nonce')) {
+        wp_die('Security check failed');
     }
 
-    // Collect form values
-    $title       = sanitize_text_field($_POST['event-title'] ?? '');
-    $start_date  = sanitize_text_field($_POST['start-date'] ?? '');
-    $end_date    = sanitize_text_field($_POST['end-date'] ?? '');
-    $start_time  = sanitize_text_field($_POST['start-time'] ?? '');
-    $end_time    = sanitize_text_field($_POST['end-time'] ?? '');
-    $location    = sanitize_text_field($_POST['location'] ?? '');
-    $description = sanitize_textarea_field($_POST['description'] ?? '');
-
-    // Tickets
-    $tickets = [];
-    foreach ($_POST as $key => $value) {
-        if (strpos($key, 'ticket_name_') === 0) {
-            $i = str_replace('ticket_name_', '', $key);
-            $tickets[] = [
-                'name'        => sanitize_text_field($value),
-                'price'       => floatval($_POST['ticket_price_' . $i] ?? 0),
-                'description' => sanitize_textarea_field($_POST['ticket_description_' . $i] ?? ''),
-            ];
-        }
+    if (!is_user_logged_in()) {
+        wp_die('You must be logged in to create or edit an event');
     }
 
-    // Payment Methods
-    $payments = [];
-    foreach ($_POST as $key => $value) {
-        if (strpos($key, 'payment_name_') === 0) {
-            $i = str_replace('payment_name_', '', $key);
-            $payments[] = [
-                'name'    => sanitize_text_field($value),
-                'details' => sanitize_textarea_field($_POST['payment_details_' . $i] ?? ''),
-            ];
-        }
-    }
-
-    // Insert Event post with logged-in user as author
-    $event_id = wp_insert_post([
-        'post_type'    => 'event',
-        'post_title'   => $title,
-        'post_content' => $description,
-        'post_status'  => 'publish',
-        'post_author'  => get_current_user_id(),
-    ]);
+    $title       = sanitize_text_field($_POST['event-title']);
+    $description = sanitize_textarea_field($_POST['description']);
+    $location    = sanitize_text_field($_POST['location']);
+    $start_date  = sanitize_text_field($_POST['start-date']);
+    $end_date    = sanitize_text_field($_POST['end-date']);
+    $start_time  = sanitize_text_field($_POST['start-time']);
+    $end_time    = sanitize_text_field($_POST['end-time']);
+    $event_id    = isset($_POST['event_id']) ? intval($_POST['event_id']) : 0;
 
     if ($event_id) {
-        // Save custom fields
-        update_post_meta($event_id, '_start_date', $start_date);
-        update_post_meta($event_id, '_end_date', $end_date);
-        update_post_meta($event_id, '_start_time', $start_time);
-        update_post_meta($event_id, '_end_time', $end_time);
-        update_post_meta($event_id, '_location', $location);
+        // ✅ Update existing event
+        $event_id = wp_update_post([
+            'ID'           => $event_id,
+            'post_title'   => $title,
+            'post_content' => $description,
+        ]);
+    } else {
+        // ✅ Create new event
+        $event_id = wp_insert_post([
+            'post_type'    => 'event',
+            'post_title'   => $title,
+            'post_content' => $description,
+            'post_status'  => 'publish',
+            'post_author'  => get_current_user_id(),
+        ]);
+    }
 
-        // Insert tickets into custom table
-        global $wpdb;
-        $table_tickets  = $wpdb->prefix . 'event_tickets';
-        $table_payments = $wpdb->prefix . 'event_payment_methods';
+    if (is_wp_error($event_id)) {
+        wp_die('Error saving event');
+    }
 
-        foreach ($tickets as $ticket) {
-            $wpdb->insert($table_tickets, [
-                'event_id'    => $event_id,
-                'name'        => $ticket['name'],
-                'description' => $ticket['description'],
-                'price'       => $ticket['price'],
-            ]);
-        }
+    // ✅ Update meta fields
+    update_post_meta($event_id, '_location', $location);
+    update_post_meta($event_id, '_start_date', $start_date);
+    update_post_meta($event_id, '_end_date', $end_date);
+    update_post_meta($event_id, '_start_time', $start_time);
+    update_post_meta($event_id, '_end_time', $end_time);
 
-        // Insert payments into custom table
-        foreach ($payments as $payment) {
-            $wpdb->insert($table_payments, [
-                'event_id' => $event_id,
-                'name'     => $payment['name'],
-                'details'  => $payment['details'],
-            ]);
-        }
+    // ✅ Handle featured image
+    if (!empty($_FILES['event_image']['name'])) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
 
-        // Handle image upload
-        if (!empty($_FILES['event_image']['name'])) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-            require_once ABSPATH . 'wp-admin/includes/media.php';
-            require_once ABSPATH . 'wp-admin/includes/image.php';
-
-            $attachment_id = media_handle_upload('event_image', $event_id);
-            if (!is_wp_error($attachment_id)) {
-                set_post_thumbnail($event_id, $attachment_id);
-            }
+        $attachment_id = media_handle_upload('event_image', $event_id);
+        if (!is_wp_error($attachment_id)) {
+            set_post_thumbnail($event_id, $attachment_id);
         }
     }
 
-    wp_redirect(home_url('/view-events/'));
+    global $wpdb;
+    $table_tickets  = $wpdb->prefix . 'event_tickets';
+    $table_payments = $wpdb->prefix . 'event_payment_methods';
+
+    // ✅ Remove old tickets & payments when updating
+    if ($event_id) {
+        $wpdb->delete($table_tickets, ['event_id' => $event_id]);
+        $wpdb->delete($table_payments, ['event_id' => $event_id]);
+    }
+
+    // ✅ Insert tickets
+    $ticket_index = 1;
+    while (isset($_POST["ticket_name_$ticket_index"])) {
+        $ticket_name  = sanitize_text_field($_POST["ticket_name_$ticket_index"]);
+        $ticket_price = floatval($_POST["ticket_price_$ticket_index"]);
+        $ticket_desc  = sanitize_textarea_field($_POST["ticket_description_$ticket_index"]);
+
+        $wpdb->insert($table_tickets, [
+            'event_id'    => $event_id,
+            'name'        => $ticket_name,
+            'price'       => $ticket_price,
+            'description' => $ticket_desc,
+        ]);
+        $ticket_index++;
+    }
+
+    // ✅ Insert payment methods
+    $payment_index = 1;
+    while (isset($_POST["payment_name_$payment_index"])) {
+        $payment_name    = sanitize_text_field($_POST["payment_name_$payment_index"]);
+        $payment_details = sanitize_text_field($_POST["payment_details_$payment_index"]);
+
+        $wpdb->insert($table_payments, [
+            'event_id' => $event_id,
+            'name'     => $payment_name,
+            'details'  => $payment_details,
+        ]);
+        $payment_index++;
+    }
+
+    // ✅ Always redirect to the events list page
+    wp_safe_redirect(home_url('/conbook/view-events/'));
     exit;
 }
 add_action('admin_post_conbook_create_event', 'conbook_handle_create_event');
