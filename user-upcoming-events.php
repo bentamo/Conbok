@@ -13,21 +13,28 @@ function conbook_user_upcoming_events_shortcode($atts) {
 
     // Query upcoming events by this user
     $today = date('Y-m-d');
+
     $args = [
         'post_type'      => 'event',
         'posts_per_page' => -1,
         'post_status'    => 'publish',
         'author'         => $user_id,
-        'meta_key'       => '_start_date',
-        'orderby'        => 'meta_value',
-        'order'          => 'ASC',
         'meta_query'     => [
-            [
+            'relation' => 'AND',
+            'start_date_clause' => [
                 'key'     => '_start_date',
                 'value'   => $today,
                 'compare' => '>=',
                 'type'    => 'DATE',
             ],
+            'start_time_clause' => [
+                'key'  => '_start_time',
+                'type' => 'TIME',
+            ],
+        ],
+        'orderby' => [
+            'start_date_clause' => 'ASC',
+            'start_time_clause' => 'ASC',
         ],
     ];
 
