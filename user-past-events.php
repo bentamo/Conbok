@@ -11,24 +11,24 @@ function conbook_user_past_events_shortcode($atts) {
 
     $user_id = get_current_user_id();
 
-    // Query past events by this user
-    $today = date('Y-m-d');
+    // Query all past events (based on end datetime)
     $args = [
         'post_type'      => 'event',
         'posts_per_page' => -1,
         'post_status'    => 'publish',
         'author'         => $user_id,
-        'meta_key'       => '_start_date',
-        'orderby'        => 'meta_value',
-        'order'          => 'DESC',
         'meta_query'     => [
             [
-                'key'     => '_start_date',
-                'value'   => $today,
+                'key'     => '_end_datetime',
+                'value'   => current_time('mysql'),
                 'compare' => '<',
-                'type'    => 'DATE',
+                'type'    => 'DATETIME',
             ],
         ],
+        'orderby'  => 'meta_value',
+        'order'    => 'DESC', // most recently expired first
+        'meta_key' => '_end_datetime',
+        'meta_type'=> 'DATETIME',
     ];
 
     $events = new WP_Query($args);
@@ -37,11 +37,11 @@ function conbook_user_past_events_shortcode($atts) {
         return '<p>No past events found.</p>';
     }
 
-    // Inline style for grid layout (same as upcoming events)
+    // Prepare inline CSS for the event grid/cards
     $output = '<style>
         .user-past-events-wrapper {
             display: flex;
-            justify-content: center; /* center the grid */
+            justify-content: center;
             width: 100%;
         }
         .user-past-events {
@@ -72,11 +72,10 @@ function conbook_user_past_events_shortcode($atts) {
             transform: translateY(-4px);
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         }
-        .event-card,
-        .event-card * {
+        .event-card, .event-card * {
             text-decoration: none !important;
             color: inherit !important;
-        }        
+        }
         .event-card img {
             width: 100%;
             height: 250px;
@@ -85,11 +84,11 @@ function conbook_user_past_events_shortcode($atts) {
         .event-card-content {
             padding: 15px;
             text-align: center;
-            background: #f2f4f7;
+            background: #f9f9f9;
         }
         .event-date {
             font-weight: bold;
-            color: #333;
+            color: #555;
             margin-bottom: 6px;
         }
         .event-card-content strong {
@@ -98,36 +97,36 @@ function conbook_user_past_events_shortcode($atts) {
         }
     </style>';
 
-    // Build the HTML output
+    // Build HTML output
     $output .= '<div class="user-past-events-wrapper">';
     $output .= '<div class="user-past-events">';
 
     while ($events->have_posts()) {
         $events->the_post();
         $post_id = get_the_ID();
-        $title = get_the_title();
+        $title   = get_the_title();
 
-        // Get event start date & time
-        $start_date = get_post_meta($post_id, '_start_date', true); 
-        $start_time = get_post_meta($post_id, '_start_time', true); 
-        $datetime_str = $start_date . ' ' . ($start_time ?: '00:00:00');
-        $formatted_start = date('m/d/y • g:i A', strtotime($datetime_str));
+        // Get end datetime
+        $end_datetime = get_post_meta($post_id, '_end_datetime', true);
 
-        // Event slug
+        // Format end for display
+        $formatted_end = $end_datetime
+            ? date('m/d/y • g:i A', strtotime($end_datetime))
+            : 'Ended';
+
+        // Event slug and link
         $event_slug = get_post_field('post_name', $post_id);
-
-        // Build event link
         $event_link = home_url('/event-page-organizer/?event-slug=' . $event_slug);
 
         // Thumbnail fallback
         $image_url = get_the_post_thumbnail_url($post_id, 'medium') 
             ?: 'https://via.placeholder.com/300x300?text=No+Image';
 
-        // Card output (clickable)
+        // Output clickable card
         $output .= '<a href="' . esc_url($event_link) . '" class="event-card">';
         $output .= '<img src="' . esc_url($image_url) . '" alt="' . esc_attr($title) . '">';
         $output .= '<div class="event-card-content">';
-        $output .= '<div class="event-date">' . esc_html($formatted_start) . '</div>';
+        $output .= '<div class="event-date">Ended: ' . esc_html($formatted_end) . '</div>';
         $output .= '<strong>' . esc_html($title) . '</strong>';
         $output .= '</div>'; // .event-card-content
         $output .= '</a>';   // close clickable card
