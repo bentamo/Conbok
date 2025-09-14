@@ -11,31 +11,24 @@ function conbook_user_upcoming_events_shortcode($atts) {
 
     $user_id = get_current_user_id();
 
-    // Query all future and ongoing events (based on start date/time)
-    $today = date('Y-m-d');
-
+    // Query all future and ongoing events (based on end datetime)
     $args = [
         'post_type'      => 'event',
         'posts_per_page' => -1,
         'post_status'    => 'publish',
         'author'         => $user_id,
         'meta_query'     => [
-            'relation' => 'AND',
-            'start_date_clause' => [
-                'key'     => '_start_date',
-                'value'   => $today,
+            [
+                'key'     => '_end_datetime',
+                'value'   => current_time('mysql'), // ✅ use local site time
                 'compare' => '>=',
-                'type'    => 'DATE',
-            ],
-            'start_time_clause' => [
-                'key'  => '_start_time',
-                'type' => 'TIME',
+                'type'    => 'DATETIME',
             ],
         ],
-        'orderby' => [
-            'start_date_clause' => 'ASC',
-            'start_time_clause' => 'ASC',
-        ],
+        'orderby'  => 'meta_value',
+        'order'    => 'ASC',
+        'meta_key' => '_start_datetime',
+        'meta_type'=> 'DATETIME'
     ];
 
     $events = new WP_Query($args);
@@ -108,31 +101,18 @@ function conbook_user_upcoming_events_shortcode($atts) {
     $output .= '<div class="user-upcoming-events-wrapper">';
     $output .= '<div class="user-upcoming-events">';
 
-    // Get current timestamp
-    $now = time();
-
     while ($events->have_posts()) {
         $events->the_post();
         $post_id = get_the_ID();
-        $title = get_the_title();
+        $title   = get_the_title();
 
-        // Get start and end date/time
-        $start_date = get_post_meta($post_id, '_start_date', true);
-        $start_time = get_post_meta($post_id, '_start_time', true);
-        $end_date   = get_post_meta($post_id, '_end_date', true);
-        $end_time   = get_post_meta($post_id, '_end_time', true);
-
-        // Build timestamps
-        $start_datetime = strtotime($start_date . ' ' . ($start_time ?: '00:00:00'));
-        $end_datetime   = strtotime($end_date . ' ' . ($end_time ?: '23:59:59')); // default end of day if empty
-
-        // Skip expired events
-        if ($end_datetime < $now) {
-            continue;
-        }
+        // Get start datetime
+        $start_datetime = get_post_meta($post_id, '_start_datetime', true);
 
         // Format start for display
-        $formatted_start = date('m/d/y • g:i A', $start_datetime);
+        $formatted_start = $start_datetime 
+            ? date('m/d/y • g:i A', strtotime($start_datetime))
+            : 'TBA';
 
         // Event slug and link
         $event_slug = get_post_field('post_name', $post_id);

@@ -81,6 +81,14 @@ function conbook_handle_create_event() {
     update_post_meta($event_id, '_start_time', $start_time);
     update_post_meta($event_id, '_end_time', $end_time);
 
+    
+    // Combine into full datetime fields (24-hour format)
+    $start_datetime = date('Y-m-d H:i:s', strtotime("$start_date $start_time"));
+    $end_datetime   = date('Y-m-d H:i:s', strtotime("$end_date $end_time"));
+    update_post_meta($event_id, '_start_datetime', $start_datetime);
+    update_post_meta($event_id, '_end_datetime', $end_datetime);
+
+    
     // ✅ Handle featured image
     if (!empty($_FILES['event_image']['name'])) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
@@ -347,6 +355,17 @@ function conbook_save_event_meta($post_id) {
     update_post_meta($post_id, '_start_time', sanitize_text_field($_POST['start_time'] ?? ''));
     update_post_meta($post_id, '_end_time', sanitize_text_field($_POST['end_time'] ?? ''));
     update_post_meta($post_id, '_location', sanitize_text_field($_POST['location'] ?? ''));
+
+    // Combine into full datetime fields (24-hour format)
+    $start_date  = sanitize_text_field($_POST['start_date'] ?? '');
+    $end_date    = sanitize_text_field($_POST['end_date'] ?? '');
+    $start_time  = sanitize_text_field($_POST['start_time'] ?? '');
+    $end_time    = sanitize_text_field($_POST['end_time'] ?? '');
+    $start_datetime = date('Y-m-d H:i:s', strtotime("$start_date $start_time"));
+    $end_datetime   = date('Y-m-d H:i:s', strtotime("$end_date $end_time"));
+    update_post_meta($post_id, '_start_datetime', $start_datetime);
+    update_post_meta($post_id, '_end_datetime', $end_datetime);
+
 
     // Update existing tickets
     foreach ($_POST as $key => $value) {
