@@ -43,6 +43,10 @@ function conbook_handle_create_event() {
         wp_die('You must be logged in to create or edit an event');
     }
 
+    global $wpdb;
+    $table_tickets  = $wpdb->prefix . 'event_tickets';
+    $table_payments = $wpdb->prefix . 'event_payment_methods';
+
     $title       = sanitize_text_field($_POST['event-title']);
     $description = sanitize_textarea_field($_POST['description']);
     $location    = sanitize_text_field($_POST['location']);
@@ -52,21 +56,47 @@ function conbook_handle_create_event() {
     $end_time    = sanitize_text_field($_POST['end-time']);
     $event_id    = isset($_POST['event_id']) ? intval($_POST['event_id']) : 0;
 
+    // -------------------------------
+    // 1. Generate a unique slug for new events
+    // -------------------------------
+    function conbook_generate_random_string($length = 8) {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $string = '';
+        for ($i = 0; $i < $length; $i++) {
+            $string .= $characters[random_int(0, strlen($characters) - 1)];
+        }
+        return $string;
+    }
+
+    if (!$event_id) {
+        $random_suffix = conbook_generate_random_string(8);
+        $slug = 'evt-' . $random_suffix;
+
+        while (get_page_by_path($slug, OBJECT, 'event')) {
+            $random_suffix = conbook_generate_random_string(8);
+            $slug = 'evt-' . $random_suffix;
+        }
+    }
+
+    // -------------------------------
+    // 2. Insert or update event
+    // -------------------------------
     if ($event_id) {
-        // ✅ Update existing event
+        // Update existing event (keep slug)
         $event_id = wp_update_post([
             'ID'           => $event_id,
             'post_title'   => $title,
             'post_content' => $description,
         ]);
     } else {
-        // ✅ Create new event
+        // Create new event with unique slug
         $event_id = wp_insert_post([
             'post_type'    => 'event',
             'post_title'   => $title,
             'post_content' => $description,
             'post_status'  => 'publish',
             'post_author'  => get_current_user_id(),
+            'post_name'    => $slug,
         ]);
     }
 
@@ -74,22 +104,23 @@ function conbook_handle_create_event() {
         wp_die('Error saving event');
     }
 
-    // ✅ Update meta fields
+    // -------------------------------
+    // 3. Update event meta fields
+    // -------------------------------
     update_post_meta($event_id, '_location', $location);
     update_post_meta($event_id, '_start_date', $start_date);
     update_post_meta($event_id, '_end_date', $end_date);
     update_post_meta($event_id, '_start_time', $start_time);
     update_post_meta($event_id, '_end_time', $end_time);
 
-    
-    // Combine into full datetime fields (24-hour format)
     $start_datetime = date('Y-m-d H:i:s', strtotime("$start_date $start_time"));
     $end_datetime   = date('Y-m-d H:i:s', strtotime("$end_date $end_time"));
     update_post_meta($event_id, '_start_datetime', $start_datetime);
     update_post_meta($event_id, '_end_datetime', $end_datetime);
 
-    
-    // ✅ Handle featured image
+    // -------------------------------
+    // 4. Handle featured image
+    // -------------------------------
     if (!empty($_FILES['event_image']['name'])) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         require_once(ABSPATH . 'wp-admin/includes/media.php');
@@ -101,17 +132,17 @@ function conbook_handle_create_event() {
         }
     }
 
-    global $wpdb;
-    $table_tickets  = $wpdb->prefix . 'event_tickets';
-    $table_payments = $wpdb->prefix . 'event_payment_methods';
-
-    // ✅ Remove old tickets & payments when updating
+    // -------------------------------
+    // 5. Remove old tickets & payments
+    // -------------------------------
     if ($event_id) {
         $wpdb->delete($table_tickets, ['event_id' => $event_id]);
         $wpdb->delete($table_payments, ['event_id' => $event_id]);
     }
 
-    // ✅ Insert tickets
+    // -------------------------------
+    // 6. Insert tickets
+    // -------------------------------
     $ticket_index = 1;
     while (isset($_POST["ticket_name_$ticket_index"])) {
         $ticket_name  = sanitize_text_field($_POST["ticket_name_$ticket_index"]);
@@ -127,7 +158,7 @@ function conbook_handle_create_event() {
         $ticket_index++;
     }
 
-    // ✅ Insert payment methods
+    // Insert payment methods
     $payment_index = 1;
     while (isset($_POST["payment_name_$payment_index"])) {
         $payment_name    = sanitize_text_field($_POST["payment_name_$payment_index"]);
@@ -141,7 +172,9 @@ function conbook_handle_create_event() {
         $payment_index++;
     }
 
-    // ✅ Always redirect to the events list page
+    // -------------------------------
+    // 7. Redirect to events list
+    // -------------------------------
     wp_safe_redirect(home_url('/conbook/view-events/'));
     exit;
 }
@@ -486,3 +519,21 @@ function conbook_render_event_registrants_column($column, $post_id) {
     }
 }
 add_action('manage_event_posts_custom_column', 'conbook_render_event_registrants_column', 10, 2);
+
+// -------------------------------
+// 8. Rewrite Rules for Event Page (pretty URLs)
+// -------------------------------
+
+add_action('init', function() {
+    add_rewrite_rule(
+        '^event-page/([^/]+)/?$',
+        'index.php?pagename=event-page&event_slug=$matches[1]',
+        'top'
+    );
+});
+
+function conbook_event_query_vars($vars) {
+    $vars[] = 'event_slug';
+    return $vars;
+}
+add_filter('query_vars', 'conbook_event_query_vars');

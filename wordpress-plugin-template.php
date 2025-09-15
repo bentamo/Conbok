@@ -55,6 +55,8 @@ require_once 'form-event-registration.php';
 
 require_once 'show-event-registrants.php';
 
+require_once 'event-details-new.php';
+
 /**
  * Returns the main instance of WordPress_Plugin_Template to prevent the need to use globals.
  *
