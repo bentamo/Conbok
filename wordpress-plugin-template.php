@@ -42,6 +42,7 @@ require_once 'qr-generator.php';
 require_once 'event-details.php';
 
 // Personal Page(?)
+require_once 'personal-page.php';
 require_once 'user-upcoming-events.php';
 require_once 'user-past-events.php';
 
