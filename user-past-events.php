@@ -39,61 +39,104 @@ function conbook_user_past_events_shortcode($atts) {
 
     // Prepare inline CSS for the event grid/cards
     $output = '<style>
+        /* Grid wrapper */
         .user-past-events-wrapper {
             display: flex;
             justify-content: center;
             width: 100%;
         }
+
         .user-past-events {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 400px));
             gap: 20px;
-            max-width: 900px;
+            justify-content: center;
+            max-width: 850px;
             width: 100%;
         }
+
         @media (max-width: 768px) {
             .user-past-events {
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Glassmorphic Event Card */
         .event-card {
             display: block;
-            border: 1px solid #ddd;
             border-radius: 15px;
             overflow: hidden;
-            background: #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             width: 100%;
             text-decoration: none;
             color: inherit;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            position: relative;
         }
+
         .event-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transform: translateY(-6px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.15);
         }
+
         .event-card, .event-card * {
             text-decoration: none !important;
             color: inherit !important;
         }
+
+        /* Image styling with slight zoom effect */
         .event-card img {
             width: 100%;
             height: 250px;
             object-fit: cover;
+            transition: transform 0.3s ease, filter 0.3s ease;
+            filter: brightness(0.95);
         }
+
+        .event-card:hover img {
+            transform: scale(1.03);
+            filter: brightness(1);
+        }
+
+        /* Card content overlay */
         .event-card-content {
             padding: 15px;
             text-align: center;
-            background: #f9f9f9;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(5px);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
         }
+
         .event-date {
-            font-weight: bold;
-            color: #555;
+            font-weight: normal;
+            color: #333;
             margin-bottom: 6px;
         }
+
         .event-card-content strong {
             display: block;
-            font-size: 1.1em;
+            font-size: 2em;
+        }
+
+        /* Optional: Past badge on top-left */
+        .event-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            z-index: 2;
         }
     </style>';
 

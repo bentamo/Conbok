@@ -20,7 +20,7 @@ function conbook_user_upcoming_events_shortcode($atts) {
         'meta_query'     => [
             [
                 'key'     => '_end_datetime',
-                'value'   => current_time('mysql'), // ✅ use local site time
+                'value'   => current_time('mysql'),
                 'compare' => '>=',
                 'type'    => 'DATETIME',
             ],
@@ -37,63 +37,91 @@ function conbook_user_upcoming_events_shortcode($atts) {
         return '<p>No upcoming events found.</p>';
     }
 
-    // Prepare inline CSS for the event grid/cards
+    // Prepare inline CSS for the event grid/cards (glassmorphic style)
     $output = '<style>
+        /* Grid wrapper */
         .user-upcoming-events-wrapper {
             display: flex;
             justify-content: center;
             width: 100%;
         }
+
         .user-upcoming-events {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 400px));
             gap: 20px;
-            max-width: 900px;
+            justify-content: center;
+            max-width: 850px;
             width: 100%;
         }
+
         @media (max-width: 768px) {
             .user-upcoming-events {
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Glassmorphic Event Card */
         .event-card {
             display: block;
-            border: 1px solid #ddd;
             border-radius: 15px;
             overflow: hidden;
-            background: #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             width: 100%;
             text-decoration: none;
             color: inherit;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            position: relative;
         }
+
         .event-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transform: translateY(-6px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.15);
         }
+
         .event-card, .event-card * {
             text-decoration: none !important;
             color: inherit !important;
         }
+
+        /* Image styling with slight zoom effect */
         .event-card img {
             width: 100%;
             height: 250px;
             object-fit: cover;
+            transition: transform 0.3s ease, filter 0.3s ease;
+            filter: brightness(0.95);
         }
+
+        .event-card:hover img {
+            transform: scale(1.03);
+            filter: brightness(1);
+        }
+
+        /* Card content overlay */
         .event-card-content {
             padding: 15px;
             text-align: center;
-            background: #f2f4f7;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(5px);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
         }
+
         .event-date {
-            font-weight: bold;
+            font-weight: normal !important;
             color: #333;
             margin-bottom: 6px;
         }
+
         .event-card-content strong {
             display: block;
-            font-size: 1.1em;
+            font-size: 2em;
         }
     </style>';
 
