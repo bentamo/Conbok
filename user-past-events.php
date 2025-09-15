@@ -114,14 +114,14 @@ function conbook_user_past_events_shortcode($atts) {
         }
 
         .event-date {
-            font-weight: bold;
+            font-weight: normal;
             color: #333;
             margin-bottom: 6px;
         }
 
         .event-card-content strong {
             display: block;
-            font-size: 1.1em;
+            font-size: 2em;
         }
 
         /* Optional: Past badge on top-left */

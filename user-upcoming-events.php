@@ -114,14 +114,14 @@ function conbook_user_upcoming_events_shortcode($atts) {
         }
 
         .event-date {
-            font-weight: bold;
+            font-weight: normal !important;
             color: #333;
             margin-bottom: 6px;
         }
 
         .event-card-content strong {
             display: block;
-            font-size: 1.1em;
+            font-size: 2em;
         }
     </style>';
 

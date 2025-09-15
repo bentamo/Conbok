@@ -21,11 +21,12 @@ add_shortcode('user-dashboard', function() {
                 <button class="tab-btn" data-tab="past">Past</button>
                 <span class="tab-indicator"></span>
             </div>
+
             <div class="tab-content">
-                <div class="tab-panel" id="upcoming">
+                <div class="tab-panel active" id="upcoming">
                     <?php echo do_shortcode('[user-upcoming-events]'); ?>
                 </div>
-                <div class="tab-panel" id="past" style="display:none;">
+                <div class="tab-panel" id="past">
                     <?php echo do_shortcode('[user-past-events]'); ?>
                 </div>
             </div>
@@ -40,11 +41,12 @@ add_shortcode('user-dashboard', function() {
                 <button class="tab-btn" data-tab="past-reg">Past</button>
                 <span class="tab-indicator"></span>
             </div>
+
             <div class="tab-content">
-                <div class="tab-panel" id="upcoming-reg">
+                <div class="tab-panel active" id="upcoming-reg">
                     <?php echo do_shortcode(''); ?>
                 </div>
-                <div class="tab-panel" id="past-reg" style="display:none;">
+                <div class="tab-panel" id="past-reg">
                     <?php echo do_shortcode(''); ?>
                 </div>
             </div>
@@ -111,7 +113,6 @@ add_shortcode('user-dashboard', function() {
             text-decoration: none !important;
         }
 
-        /* Only float effect on hover */
         .tab-btn:hover {
             transform: translateY(-2px);
             box-shadow: none;
@@ -125,29 +126,134 @@ add_shortcode('user-dashboard', function() {
             font-weight: bold;
         }
 
-        /* Remove all outlines, shadows, and background for tab buttons */
-        .tab-btn,
-        .tab-btn:focus,
-        .tab-btn:active {
+        .tab-btn, .tab-btn:focus, .tab-btn:active {
             outline: none !important;
             box-shadow: none !important;
             background: transparent !important;
             color: inherit !important;
         }
 
-        /* Tab indicator line */
         .tab-indicator {
             position: absolute;
             bottom: -6px;
             height: 2px;
             background: linear-gradient(135deg,#ff4b2b,#7d3fff);
             border-radius: 2px;
-            transition: all 0.3s ease;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .tab-content { }
+        .tab-content {
+            position: relative;
+        }
+
         .tab-panel {
-            min-height: 100px; /* adjust based on typical event card height */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.35s ease;
+        }
+
+        .tab-panel.active {
+            opacity: 1;
+            visibility: visible;
+            position: relative;
+        }
+
+        /* -----------------------------
+           Glassmorphic Event Cards
+        ------------------------------ */
+        .user-upcoming-events-wrapper, .user-past-events-wrapper {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .user-upcoming-events, .user-past-events {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 400px));
+            gap: 20px;
+            justify-content: center;
+            max-width: 850px;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .user-upcoming-events, .user-past-events {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .event-card {
+            display: block;
+            border-radius: 15px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            position: relative;
+            will-change: transform, box-shadow;
+        }
+
+        .event-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .event-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            transition: transform 0.3s ease, filter 0.3s ease;
+            filter: brightness(0.95);
+        }
+
+        .event-card:hover img {
+            transform: scale(1.03);
+            filter: brightness(1);
+        }
+
+        .event-card-content {
+            padding: 15px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(5px);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+
+        .event-date {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .event-card-content strong {
+            display: block;
+            font-size: 1.1em;
+        }
+
+        .event-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            z-index: 2;
         }
     </style>
 
@@ -155,7 +261,7 @@ add_shortcode('user-dashboard', function() {
         document.querySelectorAll('.tabs').forEach(tabContainer => {
             const buttons = tabContainer.querySelectorAll('.tab-btn');
             const indicator = tabContainer.querySelector('.tab-indicator');
-            const panels = tabContainer.nextElementSibling.querySelectorAll('.tab-panel') || tabContainer.querySelectorAll('.tab-panel');
+            const panels = tabContainer.nextElementSibling.querySelectorAll('.tab-panel');
 
             function updateIndicator() {
                 const activeBtn = tabContainer.querySelector('.tab-btn.active');
@@ -174,7 +280,13 @@ add_shortcode('user-dashboard', function() {
                     btn.classList.add('active');
 
                     const tab = btn.dataset.tab;
-                    panels.forEach(panel => panel.style.display = (panel.id === tab) ? 'block' : 'none');
+                    panels.forEach(panel => {
+                        if(panel.id === tab){
+                            panel.classList.add('active');
+                        } else {
+                            panel.classList.remove('active');
+                        }
+                    });
 
                     updateIndicator();
                 });
@@ -185,3 +297,4 @@ add_shortcode('user-dashboard', function() {
 
     return ob_get_clean();
 });
+?>
