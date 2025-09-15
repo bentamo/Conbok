@@ -146,7 +146,9 @@ add_shortcode('user-dashboard', function() {
         }
 
         .tab-content { }
-        .tab-panel { }
+        .tab-panel {
+            min-height: 100px; /* adjust based on typical event card height */
+        }
     </style>
 
     <script>
