@@ -3,46 +3,48 @@ function event_registration() {
     global $wpdb;
 
     // Default values
-    $event_title = 'Event';
-    $event_id    = 0;
-    $user_id     = 0;
-    $ticket_options = [];
+    $event_title     = 'Event';
+    $post_id         = 0;
+    $user_id         = 0;
+    $ticket_options  = [];
     $payment_options = [];
 
-    // Get event slug from URL and sanitize
-    $event_slug = isset($_GET['event-slug']) ? sanitize_text_field($_GET['event-slug']) : '';
+    // ✅ Get the event slug from the URL
+    $slug = sanitize_text_field(get_query_var('event_slug', ''));
+    if (!$slug) return '';
 
-    // Fetch event post by slug if exists
-    if ($event_slug && ($event_post = get_page_by_path($event_slug, OBJECT, 'event'))) {
-        $event_id    = $event_post->ID;
-        $event_title = $event_post->post_title;
-        $user_id     = intval($event_post->post_author); // Event creator ID
+    // ✅ Get the event by slug
+    $event = get_page_by_path($slug, OBJECT, 'event');
+    if (!$event) return '';
 
-        // ✅ Retrieve tickets from event_tickets table
-        $tickets = $wpdb->get_results(
-            $wpdb->prepare("SELECT id, name, price FROM {$wpdb->prefix}event_tickets WHERE event_id = %d", $event_id),
-            ARRAY_A
-        );
-        if (!empty($tickets)) {
-            foreach ($tickets as $t) {
-                $ticket_options[$t['id']] = $t['name'] . ' (Php ' . number_format(floatval($t['price']), 2) . ')';
-            }
-        }
+    $post_id     = $event->ID;
+    $event_title = $event->post_title;
+    $user_id     = intval($event->post_author); // Event creator ID
 
-        // ✅ Retrieve payment methods from event_payment_methods table
-        $payments = $wpdb->get_results(
-            $wpdb->prepare("SELECT id, name FROM {$wpdb->prefix}event_payment_methods WHERE event_id = %d", $event_id),
-            ARRAY_A
-        );
-        if (!empty($payments)) {
-            foreach ($payments as $p) {
-                $payment_options[$p['id']] = $p['name'];
-            }
+    // ✅ Retrieve tickets from event_tickets table
+    $tickets = $wpdb->get_results(
+        $wpdb->prepare("SELECT id, name, price FROM {$wpdb->prefix}event_tickets WHERE event_id = %d", $post_id),
+        ARRAY_A
+    );
+    if (!empty($tickets)) {
+        foreach ($tickets as $t) {
+            $ticket_options[$t['id']] = $t['name'] . ' - Php ' . number_format(floatval($t['price']), 2);
         }
     }
 
-    // Fallback if no tickets available
-    if (empty($ticket_options)) $ticket_options = [0 => 'No tickets available'];
+    // ✅ Retrieve payment methods from event_payment_methods table
+    $payments = $wpdb->get_results(
+        $wpdb->prepare("SELECT id, name, details FROM {$wpdb->prefix}event_payment_methods WHERE event_id = %d", $post_id),
+        ARRAY_A
+    );
+    if (!empty($payments)) {
+        foreach ($payments as $p) {
+            $payment_options[$p['id']] = $p['name'] . ' - ' . $p['details'];
+        }
+    }
+
+    // Fallback if no tickets or payments
+    if (empty($ticket_options))  $ticket_options  = [0 => 'No tickets available'];
     if (empty($payment_options)) $payment_options = [0 => 'No payment methods available'];
 
     // Get current logged-in user info
@@ -50,7 +52,8 @@ function event_registration() {
     $first_name   = $current_user->first_name ?? '';
     $last_name    = $current_user->last_name ?? '';
     $email        = $current_user->user_email ?? '';
-    $contact      = get_user_meta($current_user->ID, 'mobile_number', true) ?? '';
+    // ✅ Correct meta key for contact number
+    $contact      = get_user_meta($current_user->ID, 'contact-number-textbox', true) ?? '';
 
     // Handle form submission
     if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
@@ -69,7 +72,7 @@ function event_registration() {
             $upload = wp_handle_upload($_FILES['proof_of_payment'], ['test_form' => false]);
 
             if ($upload && !isset($upload['error'])) {
-                $filetype = wp_check_filetype($upload['file']);
+                $filetype   = wp_check_filetype($upload['file']);
                 $attachment = [
                     'post_mime_type' => $filetype['type'],
                     'post_title'     => sanitize_file_name($_FILES['proof_of_payment']['name']),
@@ -84,7 +87,7 @@ function event_registration() {
         $table = $wpdb->prefix . 'event_registrations';
         $wpdb->insert($table, [
             'user_id'           => get_current_user_id(),
-            'event_id'          => $event_id,
+            'event_id'          => $post_id,
             'ticket_id'         => $ticket_id,
             'payment_method_id' => $payment_method_id,
             'proof_id'          => $proof_id,
@@ -92,15 +95,11 @@ function event_registration() {
             'created_at'        => current_time('mysql')
         ]);
 
-        // Success message with auto-redirect
-        $redirect_url = 'http://localhost/conbook/event-page/?event-slug=' . urlencode($event_slug);
-        return '<p style="text-align:center;font-family:Inter,sans-serif;font-weight:600;">
-                    ✅ Registration submitted for ' . esc_html($event_title) . '.
-                </p>
-                <script>
-                    setTimeout(function() {
-                        window.location.href = "' . esc_url($redirect_url) . '";
-                    }, 3000); // Redirect after 3 seconds
+        // ✅ Success message with alert + auto-redirect
+        $redirect_url = get_permalink($post_id);
+        return '<script>
+                    alert("✅ Registration submitted for ' . esc_js($event_title) . '");
+                    window.location.href = "' . esc_url($redirect_url) . '";
                 </script>';
     }
 
