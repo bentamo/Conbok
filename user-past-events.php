@@ -159,7 +159,7 @@ function conbook_user_past_events_shortcode($atts) {
 
         // Event slug and link
         $event_slug = get_post_field('post_name', $post_id);
-        $event_link = home_url('/event-page-organizer/?event-slug=' . $event_slug);
+        $event_link = home_url('/event-page/?event_slug=' . $event_slug);
 
         // Thumbnail fallback
         $image_url = get_the_post_thumbnail_url($post_id, 'medium') 
