@@ -15,6 +15,7 @@ function event_tables_create() {
     $table_tickets       = $wpdb->prefix . 'event_tickets';
     $table_payments      = $wpdb->prefix . 'event_payment_methods';
     $table_registrations = $wpdb->prefix . 'event_registrations';
+    $table_guests        = $wpdb->prefix . 'event_guests';
 
     // Event Tickets
     $sql_tickets = "CREATE TABLE $table_tickets (
@@ -55,9 +56,24 @@ function event_tables_create() {
         KEY idx_status (status)
     ) $charset_collate;";
 
+    // Event Guests (linked to registrations)
+    $sql_guests = "CREATE TABLE $table_guests (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        registration_id BIGINT(20) UNSIGNED NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        contact_number VARCHAR(50) NULL,
+        status ENUM('Pending','Checked In','No Show','Cancelled') NOT NULL DEFAULT 'Pending',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_registration_id (registration_id),
+        KEY idx_status (status)
+    ) $charset_collate;";
+
     // Run dbDelta (safe create/update)
     dbDelta($sql_tickets);
     dbDelta($sql_payments);
     dbDelta($sql_registrations);
+    dbDelta($sql_guests);
 }
 register_activation_hook(__FILE__, 'event_tables_create');

@@ -59,7 +59,8 @@ require_once 'show-event-registrants.php';
 require_once 'event-page.php';
 require_once 'event-dashboard.php';
 require_once 'event-dashboard-overview-tab.php';
-require_once 'event-dashboard-registration-tab.php';
+require_once 'event-dashboard-registrations-tab.php';
+require_once 'event-dashboard-guests-tab.php';
 
 /**
  * Returns the main instance of WordPress_Plugin_Template to prevent the need to use globals.
