@@ -68,10 +68,24 @@ function conbook_handle_create_event() {
         return $string;
     }
 
-    if (!$event_id) {
+    if ($event_id) {
+        // Editing existing event
+        $event = get_post($event_id);
+
+        if (
+            !$event ||
+            $event->post_type !== 'event' ||
+            (get_current_user_id() !== intval($event->post_author) && !current_user_can('manage_options'))
+        ) {
+            // Not the author OR not an admin -> block
+            wp_die('You are not allowed to edit this event.');
+        }
+
+        $slug = $event->post_name; // keep original slug
+    } else {
+        // Creating new event: generate unique slug
         $random_suffix = conbook_generate_random_string(8);
         $slug = 'evt-' . $random_suffix;
-
         while (get_page_by_path($slug, OBJECT, 'event')) {
             $random_suffix = conbook_generate_random_string(8);
             $slug = 'evt-' . $random_suffix;
@@ -82,14 +96,18 @@ function conbook_handle_create_event() {
     // 2. Insert or update event
     // -------------------------------
     if ($event_id) {
-        // Update existing event (keep slug)
-        $event_id = wp_update_post([
+        // Update existing event
+        $update_result = wp_update_post([
             'ID'           => $event_id,
             'post_title'   => $title,
             'post_content' => $description,
+            // slug is kept automatically
         ]);
+        if (is_wp_error($update_result)) {
+            wp_die('Error updating event');
+        }
     } else {
-        // Create new event with unique slug
+        // Create new event
         $event_id = wp_insert_post([
             'post_type'    => 'event',
             'post_title'   => $title,
@@ -98,10 +116,9 @@ function conbook_handle_create_event() {
             'post_author'  => get_current_user_id(),
             'post_name'    => $slug,
         ]);
-    }
-
-    if (is_wp_error($event_id)) {
-        wp_die('Error saving event');
+        if (is_wp_error($event_id)) {
+            wp_die('Error creating event');
+        }
     }
 
     // -------------------------------
@@ -536,6 +553,14 @@ add_action('init', function() {
     add_rewrite_rule(
         '^event-dashboard/([^/]+)/?$',
         'index.php?pagename=event-dashboard&event_slug=$matches[1]',
+        'top'
+    );
+});
+
+add_action('init', function() {
+    add_rewrite_rule(
+        '^create-event/([^/]+)/?$',
+        'index.php?pagename=create-event&event_slug=$matches[1]',
         'top'
     );
 });

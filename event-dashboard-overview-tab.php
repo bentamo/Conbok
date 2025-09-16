@@ -209,7 +209,7 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
 
         // Left Subcontainer with Edit Details button, left-aligned
         $output .= '<div class="empty-left" style="flex:1; min-width:150px; padding:10px; border-radius:10px; background:transparent; display:flex; justify-content:flex-start; align-items:center;">
-            <a href="' . esc_url(home_url('/event-edit/' . $slug)) . '" 
+            <a href="' . esc_url(home_url('/create-event/' . $slug)) . '" 
                 style="
                     display:inline-block; 
                     padding:12px 25px; 

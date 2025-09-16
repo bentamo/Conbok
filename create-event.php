@@ -6,22 +6,32 @@
 add_shortcode('create-event', function ($atts = []) {
     $uid = uniqid('event-');
 
-    // Get the event slug from URL query
-    $slug  = isset($_GET['event-slug']) ? sanitize_text_field($_GET['event-slug']) : '';
-    $event = null;
+    // Get the event slug from the URL
+    $slug = sanitize_text_field(get_query_var('event_slug', ''));
 
-    if ($slug) {
-        $event = get_page_by_path($slug, OBJECT, 'event');
+    // If no slug is present, treat it as a "create new event" form
+    $event   = $slug ? get_page_by_path($slug, OBJECT, 'event') : null;
+    $post_id = $event ? $event->ID : 0;
+
+    // Restrict editing to author or admin
+    if ($event) {
+        $current_user_id = get_current_user_id();
+        if ($event->post_author != $current_user_id && !current_user_can('manage_options')) {
+            return '<p>You are not allowed to edit this event.</p>';
+        }
     }
 
     // Pre-fill values if editing
     $value_title       = $event ? esc_attr($event->post_title) : '';
     $value_description = $event ? esc_textarea($event->post_content) : '';
-    $value_location    = $event ? esc_attr(get_post_meta($event->ID, '_location', true)) : '';
-    $value_start_date  = $event ? esc_attr(get_post_meta($event->ID, '_start_date', true)) : '';
-    $value_end_date    = $event ? esc_attr(get_post_meta($event->ID, '_end_date', true)) : '';
-    $value_start_time  = $event ? esc_attr(get_post_meta($event->ID, '_start_time', true)) : '';
-    $value_end_time    = $event ? esc_attr(get_post_meta($event->ID, '_end_time', true)) : '';
+    $value_location    = $event ? esc_attr(get_post_meta($post_id, '_location', true)) : '';
+    $value_start_date  = $event ? esc_attr(get_post_meta($post_id, '_start_date', true)) : '';
+    $value_end_date    = $event ? esc_attr(get_post_meta($post_id, '_end_date', true)) : '';
+    $value_start_time  = $event ? esc_attr(get_post_meta($post_id, '_start_time', true)) : '';
+    $value_end_time    = $event ? esc_attr(get_post_meta($post_id, '_end_time', true)) : '';
+
+    // Button text
+    $button_text = $event ? 'Edit Event' : 'Create Event';
 
     // Tickets & Payments
     global $wpdb;
@@ -164,9 +174,9 @@ add_shortcode('create-event', function ($atts = []) {
             <!-- Submit -->
             <div class="create-event-container">
                 <button type="submit" class="create-event-btn">
-                    <?php echo $event ? 'Update Event' : 'Create Event'; ?>
+                    <?php echo $button_text; ?>
                 </button>
-            </div>
+            </div>s
         </form>
     </div>
 
