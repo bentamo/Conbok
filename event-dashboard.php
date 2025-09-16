@@ -35,7 +35,9 @@ function conbook_event_dashboard_shortcode($atts) {
                     <?php echo do_shortcode('[event-dashboard-overview-tab]'); ?>
                 </div>
                 <div class="tab-pane" id="guests" style="display:none;">Guests content goes here.</div>
-                <div class="tab-pane" id="registrations" style="display:none;">Registrations content goes here.</div>
+                <div class="tab-pane" id="registrations" style="display:none;">
+                    <?php echo do_shortcode('[event-dashboard-registration-tab]'); ?>
+                </div>
                 <div class="tab-pane" id="insights" style="display:none;">Insights content goes here.</div>
             </div>
 
