@@ -565,6 +565,14 @@ add_action('init', function() {
     );
 });
 
+add_action('init', function() {
+    add_rewrite_rule(
+        '^event-registration/([^/]+)/?$',
+        'index.php?pagename=event-registration&event_slug=$matches[1]',
+        'top'
+    );
+});
+
 function conbook_event_query_vars($vars) {
     $vars[] = 'event_slug';
     return $vars;

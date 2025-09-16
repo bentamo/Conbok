@@ -233,7 +233,9 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
 
         // Right Subcontainer with Share Event button, right-aligned
         $output .= '<div class="empty-right" style="flex:1; min-width:150px; padding:10px; border-radius:10px; background:transparent; display:flex; justify-content:flex-end; align-items:center;">
-            <a href="' . esc_url(home_url('/event-share/' . $slug)) . '" 
+            <a href="#" 
+                class="share-event-btn"
+                data-link="' . esc_url(home_url('/event-page/' . $slug)) . '"
                 style="
                     display:inline-block; 
                     padding:12px 25px; 
@@ -248,6 +250,10 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
                     box-shadow:0 2px 6px rgba(0,0,0,0.2); 
                     transition:opacity 0.3s ease;
                 "
+                onclick="event.preventDefault(); 
+                        navigator.clipboard.writeText(this.getAttribute(\'data-link\')).then(() => { 
+                            alert(\'Event link copied to clipboard!\'); 
+                        });"
                 onmouseover="this.style.opacity=\'0.85\'" 
                 onmouseout="this.style.opacity=\'1\'"
             >
