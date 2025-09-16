@@ -198,18 +198,23 @@ function event_registration() {
             min-height:48px; 
             border:none; 
             border-radius:40px;
-            background:linear-gradient(135deg,rgb(255,75,43),rgb(125,63,255));
+            background:linear-gradient(135deg,#ff4b2b,#7d3fff);
             color:#fff; 
             padding:0 16px; 
             font-weight:600; 
             font-size:1rem; 
             cursor:pointer; 
-            transition:opacity 0.25s ease;
+            transition: all 0.3s ease;          /* Smooth transition for shadow, lift, color */
+            transform: translateY(0);           /* Initial position */
+            box-shadow: 0 4px 10px rgba(125,63,255,0.4); /* Subtle default shadow */
         }
 
-        .form-box input[type="submit"]:hover { 
-            opacity:0.9; 
+        .form-box input[type="submit"]:hover {
+            transform: translateY(-2px);      /* Slight text color change on hover */
+            box-shadow: 0 4px 15px #F07bb1;
+            color: #F07bb1 !important;
         }
+
     </style>
 
     <div class="form-box">
