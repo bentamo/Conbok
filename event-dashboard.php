@@ -5,21 +5,25 @@
 // Restricted so only the event's author can see it
 // -------------------------------
 function conbook_event_dashboard_shortcode($atts) {
-    global $post;
 
-    // Bail if not inside a post context
-    if ( ! $post ) {
-        return '';
-    }
+    // Get the event slug from the URL
+    $slug = sanitize_text_field(get_query_var('event_slug', ''));
+    if (!$slug) return '';
+
+    // Get the event by slug
+    $event = get_page_by_path($slug, OBJECT, 'event');
+    if (!$event) return '';
+
+    $post_id = $event->ID;
 
     // Get current user ID
     $current_user_id = get_current_user_id();
 
     // Get post author ID
-    $author_id = (int) $post->post_author;
+    $author_id = (int) $event->post_author;
 
     // Restrict: only author can see the dashboard
-    if ( $current_user_id !== $author_id ) {
+    if ($current_user_id !== $author_id) {
         return 'You are not allowed to view this dashboard.';
     }
 
@@ -70,21 +74,17 @@ function conbook_event_dashboard_shortcode($atts) {
 
                 tabs.forEach(tab => {
                     tab.addEventListener('click', function() {
-                        // Remove active state from all tabs
                         tabs.forEach(t => {
                             t.classList.remove('active');
                             t.style.color = '#333';
                             t.style.fontWeight = 'normal';
                         });
-                        // Hide all panes
                         panes.forEach(p => p.style.display = 'none');
 
-                        // Activate clicked tab
                         this.classList.add('active');
                         this.style.color = '#0073aa';
                         this.style.fontWeight = 'bold';
 
-                        // Show corresponding pane
                         const tabId = this.getAttribute('data-tab');
                         document.getElementById(tabId).style.display = 'block';
                     });
