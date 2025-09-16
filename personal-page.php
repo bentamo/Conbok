@@ -72,8 +72,8 @@ add_shortcode('user-dashboard', function() {
         .create-event-btn {
             font-family: 'Inter', sans-serif;
             font-weight: 500;
-            padding: 8px 16px;
-            font-size: 14px;
+            padding: 12px 25px;
+            font-size: 16px;
             border-radius: 30px;
             border: none;
             cursor: pointer;

@@ -27,21 +27,23 @@ function conbook_event_page_shortcode($atts) {
         $output .= '<a 
             href="' . esc_url($back_url) . '" 
             style="
-                display:inline-block; 
-                padding:12px 25px; 
-                border-radius:30px; 
-                background:linear-gradient(135deg, rgb(125,63,255) 0%, rgb(255,75,43) 100%); 
-                font-family:Inter, sans-serif; 
-                font-weight:600; 
-                font-size:16px; 
-                color:#fff; 
-                text-decoration:none; 
-                text-align:center; 
-                box-shadow:0 2px 6px rgba(0,0,0,0.2); 
-                transition:opacity 0.3s ease;
+                display:inline-block;
+                padding:12px 20px;                  /* increased size */
+                border-radius:30px;
+                background:linear-gradient(135deg, rgb(255,75,43) 0%, rgb(125,63,255) 100%);
+                font-family:Inter, sans-serif;
+                font-weight:500;
+                font-size:16px;                     /* increased size */
+                color:#fff;
+                text-decoration:none;
+                text-align:center;
+                box-shadow:0 2px 6px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;          /* smooth hover transition */
+                transform: translateY(0);
+                position: relative;
             "
-            onmouseover="this.style.opacity=\'0.85\'" 
-            onmouseout="this.style.opacity=\'1\'"
+            onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px #F07BB1\'; this.style.color=\'#F07BB1\';"
+            onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
         >
             ← Back to Personal Page
         </a>';
@@ -285,15 +287,22 @@ function conbook_event_page_shortcode($atts) {
         <a href="' . esc_url($button_url) . '" style="
             display:block;
             width:100%;
-            padding:12px 0;
+            padding:12px 20px;                  /* uniform size */
             border-radius:30px; 
             background:linear-gradient(135deg,rgb(255,75,43) 0%,rgb(125,63,255) 100%); 
-            font-weight:600;
+            font-weight:500;
             color:#fff;
             text-decoration:none;
             text-align:center;
-            font-family:Inter,sans-serif;"
-        >' . esc_html($button_text) . '</a>
+            font-family:Inter,sans-serif;
+            transition: all 0.3s ease;
+            transform: translateY(0);
+            box-shadow:0 2px 6px rgba(0,0,0,0.2);
+            position: relative;
+        "
+        onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px #F07BB1\'; this.style.color=\'#F07BB1\';"
+        onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
+    >' . esc_html($button_text) . '</a>
     </div>';
 
     $output .= '</div>'; // close right container
@@ -368,23 +377,27 @@ function conbook_event_page_shortcode($atts) {
             <!-- Close button -->
             <span class="event-cta-popup-close" onclick="this.parentElement.style.display=\'none\'">&times;</span>
 
-            <h3 style="margin:0 0 12px 0; font-size:16px; font-weight:700; color:#333;">Want to create events like this?</h3>
+            <h3 style="margin:0 0 12px 0; font-size:16px; font-weight:600; color:#333;">Want to create events like this?</h3>
 
             <a href="' . esc_url($register_url) . '" 
                 style="
                     display:block; 
                     width:100%; 
-                    padding:8px 0; 
+                    padding:8px 0;                       /* keep small size */
                     border-radius:30px; 
                     background:linear-gradient(135deg, rgb(255,75,43) 0%, rgb(125,63,255) 100%); 
-                    font-weight:600; 
+                    font-weight:500;                      
                     color:#fff; 
                     text-decoration:none; 
-                    transition:opacity 0.3s ease;
                     text-align:center;
+                    font-family:Inter, sans-serif;
+                    transition: all 0.3s ease;
+                    transform: translateY(0);
+                    box-shadow:0 2px 6px rgba(0,0,0,0.2);
+                    position: relative;
                 "
-                onmouseover="this.style.opacity=\'0.85\'" 
-                onmouseout="this.style.opacity=\'1\'"
+                onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px #F07BB1\'; this.style.color=\'#F07BB1\';"
+                onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
             >Register</a>
         </div>';
     }

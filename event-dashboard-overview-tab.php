@@ -262,16 +262,19 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
                     border-radius:30px; 
                     background:linear-gradient(135deg, rgb(125,63,255) 0%, rgb(255,75,43) 100%); 
                     font-family:Inter, sans-serif; 
-                    font-weight:600; 
+                    font-weight:500; 
                     font-size:16px; 
                     color:#fff; 
                     text-decoration:none; 
                     text-align:center; 
                     box-shadow:0 2px 6px rgba(0,0,0,0.2); 
-                    transition:opacity 0.3s ease;
+                    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                               box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                               color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+ 
                 "
-                onmouseover="this.style.opacity=\'0.85\'" 
-                onmouseout="this.style.opacity=\'1\'"
+                onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px rgba(240,123,177,0.6)\'; this.style.color=\'#F07BB1\';" 
+                onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
             >
                 Edit Details
             </a>
@@ -288,20 +291,22 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
                     border-radius:30px; 
                     background:linear-gradient(135deg, rgb(125,63,255) 0%, rgb(255,75,43) 100%); 
                     font-family:Inter, sans-serif; 
-                    font-weight:600; 
+                    font-weight:500; 
                     font-size:16px; 
                     color:#fff; 
                     text-decoration:none; 
                     text-align:center; 
                     box-shadow:0 2px 6px rgba(0,0,0,0.2); 
-                    transition:opacity 0.3s ease;
+                    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                                color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 "
                 onclick="event.preventDefault(); 
                         navigator.clipboard.writeText(this.getAttribute(\'data-link\')).then(() => { 
                             alert(\'Event link copied to clipboard!\'); 
                         });"
-                onmouseover="this.style.opacity=\'0.85\'" 
-                onmouseout="this.style.opacity=\'1\'"
+                onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px rgba(240,123,177,0.6)\'; this.style.color=\'#F07BB1\';"
+                onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
             >
                 Share Event
             </a>
@@ -327,16 +332,18 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
                 border-radius:30px; 
                 background:linear-gradient(135deg, rgb(125,63,255) 0%, rgb(255,75,43) 100%); 
                 font-family:Inter, sans-serif; 
-                font-weight:600; 
+                font-weight:500; 
                 font-size:16px; 
                 color:#fff; 
                 text-decoration:none; 
                 text-align:center; 
                 box-shadow:0 2px 6px rgba(0,0,0,0.2); 
-                transition:opacity 0.3s ease;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                            box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                            color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             "
-            onmouseover="this.style.opacity=\'0.85\'" 
-            onmouseout="this.style.opacity=\'1\'"
+            onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px rgba(240,123,177,0.6)\'; this.style.color=\'#F07BB1\';"
+            onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
             onclick="return confirm(\'Are you sure you want to cancel this event? This cannot be undone.\');"
         >
             Cancel Event

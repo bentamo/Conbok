@@ -187,18 +187,35 @@ add_shortcode('create-event', function ($atts = []) {
     .card { flex: 1; padding: 1rem; border: 1px solid #ddd; border-radius: .5rem; background: #fafafa; min-width: 0; }
     input, textarea, button { font-family: inherit; }
 
-    /* Back button */
-    .back-button-container { margin-bottom: 1rem; }
-    .back-btn {
-        padding: .5rem 1rem;
-        color: #fff;
-        border: none;
-        cursor: pointer;
-        font-size: 1rem;
-        border-radius:30px;
-        background:linear-gradient(135deg,rgb(255,75,43) 0%,rgb(125,63,255) 100%);
+    /* Unified Button Styles for Back and Create Event */
+    .back-btn,
+    .create-event-btn {
+        font-family: 'Inter', sans-serif;   /* Font */
+        font-weight: 500;                    /* Medium weight */
+        padding: 12px 20px;                   /* Top/Bottom and Left/Right padding */
+        font-size: 16px;                     /* Text size */
+        border-radius: 30px;                 /* Rounded pill shape */
+        border: none;                        /* No border */
+        cursor: pointer;                     /* Pointer on hover */
+        background: linear-gradient(135deg,#ff4b2b,#7d3fff); /* Gradient background */
+        color: #fff !important;              /* White text */
+        text-decoration: none !important;    /* Remove underline */
+        transition: all 0.3s ease;           /* Smooth hover transition */
+        transform: translateY(0);            /* Initial position for hover effect */
+        box-shadow: none;                     /* No shadow by default */
+        position: relative;                  /* For potential pseudo-elements or effects */
     }
-    .back-btn:hover { opacity:0.9; }
+
+    /* Hover State */
+    .back-btn:hover,
+    .create-event-btn:hover {
+        transform: translateY(-2px);         /* Lift effect */
+        box-shadow: 0 4px 15px #F07BB1;      /* Glow shadow */
+        color: #F07BB1 !important;           /* Text changes color to pinkish */
+    }
+
+    /* Back button container spacing */
+    .back-button-container { margin-bottom: 1rem; }
 
     /* Title */
     .title-container { margin-bottom: 1.5rem; }
@@ -262,18 +279,8 @@ add_shortcode('create-event', function ($atts = []) {
     .add-payment-btn { margin-top:0.5rem; padding:.5rem .75rem; border:1px solid #ccc; background:#fff; color:#333; border-radius:.375rem; cursor:pointer; }
     .add-payment-btn:hover { background:#f0f0f0; }
 
-    /* Submit */
+    /* Submit container */
     .create-event-container { margin-top:1.5rem; text-align:right; }
-    .create-event-btn {
-        padding:.75rem 1.25rem;
-        color:#fff;
-        border:none;
-        cursor:pointer;
-        font-size:1rem;
-        border-radius:30px;
-        background:linear-gradient(135deg,rgb(255,75,43) 0%,rgb(125,63,255) 100%);
-    }
-    .create-event-btn:hover{ opacity:0.9; }
 
     @media (min-width:993px){
         .image-slot { height: 500px; width: 500px; }
