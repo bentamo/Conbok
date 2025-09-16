@@ -226,20 +226,37 @@ add_shortcode('user-dashboard', function() {
             font-size:1.2em;
         }
 
-        /* Optional Badge (not output yet) */
+        /* Base badge (for Live, etc.) */
         .event-badge {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(5px);
-            color: #fff;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 0.75em;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
             font-weight: 600;
             z-index: 2;
+            letter-spacing: 0.5px;
         }
+
+        /* Live badge (gradient) */
+        .event-badge.live {
+            background: linear-gradient(135deg, #FF4B2B, #7D3FFF);
+            color: #fff !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        /* Ended badge (subtle glass) */
+        .event-badge.ended {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            color: #fff !important;
+            font-weight: 500;
+            box-shadow: inset 0 1px 3px rgba(255,255,255,0.2),
+                        0 2px 6px rgba(0,0,0,0.2);
+        }
+        
     </style>
 
     <script>

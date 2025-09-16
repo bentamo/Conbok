@@ -48,9 +48,10 @@ function conbook_user_past_events_shortcode($atts) {
             ?: 'https://via.placeholder.com/300x300?text=No+Image';
 
         $output .= '<a href="' . esc_url($event_link) . '" class="event-card">';
+        $output .= '<div class="event-badge ended">EXPIRED</div>'; // 🔹 new badge
         $output .= '<img src="' . esc_url($image_url) . '" alt="' . esc_attr($title) . '">';
         $output .= '<div class="event-card-content">';
-        $output .= '<div class="event-date">Ended: ' . esc_html($formatted_end) . '</div>';
+        $output .= '<div class="event-date">Ended on ' . esc_html($formatted_end) . '</div>';
         $output .= '<strong>' . esc_html($title) . '</strong>';
         $output .= '</div></a>';
     }
