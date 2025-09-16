@@ -13,6 +13,52 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
 
     $post_id = $event->ID;
 
+    // -------------------------------
+    // Cancel Event logic
+    // -------------------------------
+    if (isset($_GET['cancel_event']) && $_GET['cancel_event'] == 1) {
+        // Delete featured image if exists
+        $thumb_id = get_post_thumbnail_id($post_id);
+        if ($thumb_id) {
+            wp_delete_attachment($thumb_id, true);
+        }
+
+        // Delete proof(s) of payment stored as meta (if any)
+        $proof_ids = get_post_meta($post_id, '_proof_of_payment_ids', true);
+        if (!empty($proof_ids)) {
+            if (!is_array($proof_ids)) {
+                $proof_ids = [$proof_ids];
+            }
+            foreach ($proof_ids as $pid) {
+                wp_delete_attachment(intval($pid), true);
+            }
+            delete_post_meta($post_id, '_proof_of_payment_ids');
+        }
+
+        // Delete registrations for this event
+        $registrations_table = $wpdb->prefix . 'event_registrations';
+        $registrations = $wpdb->get_results(
+            $wpdb->prepare("SELECT * FROM $registrations_table WHERE event_id = %d", $post_id),
+            ARRAY_A
+        );
+
+        if ($registrations) {
+            foreach ($registrations as $reg) {
+                if (!empty($reg['proof_id'])) {
+                    wp_delete_attachment(intval($reg['proof_id']), true);
+                }
+            }
+            $wpdb->delete($registrations_table, ['event_id' => $post_id]);
+        }
+
+        // Delete the event itself
+        wp_delete_post($post_id, true);
+
+        // Redirect back to events list
+        wp_safe_redirect(home_url('/view-events/'));
+        exit;
+    }
+
     // Start output
     $output = '<div class="event-dashboard-overview" style="padding-left:20px; padding-right:20px;">';
 
@@ -263,16 +309,18 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
 
     $output .= '</div>'; // close transparent container
 
-    // Cancel Event Container with description and button
-    $output .= '<div class="event-dashboard-empty-lower" style="margin-bottom:15px; padding:15px; border-radius:20px; background:transparent; display:flex; flex-direction:column; align-items:center; gap:10px;">';
+    // -------------------------------
+    // Cancel Event Container
+    // -------------------------------
+    $output .= '<div class="event-cancel-card" style="padding:15px; border:1px solid #ddd; border-radius:20px; margin-bottom:15px; background:#fff; text-align:center;">';
 
-        // Description above the button
-        $output .= '<div style="font-size:14px; color:#666; text-align:center;">
+        // Description above button
+        $output .= '<div style="font-size:14px; color:#666; margin-bottom:10px;">
             Canceling this event will notify all registered attendees and remove it from the public calendar. This action cannot be undone.
         </div>';
 
-        // Cancel Event Button
-        $output .= '<a href="' . esc_url(home_url('/event-cancel/' . $slug)) . '" 
+        // Cancel Button
+        $output .= '<a href="' . esc_url(add_query_arg('cancel_event', '1')) . '" 
             style="
                 display:inline-block; 
                 padding:12px 25px; 
@@ -289,11 +337,12 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
             "
             onmouseover="this.style.opacity=\'0.85\'" 
             onmouseout="this.style.opacity=\'1\'"
+            onclick="return confirm(\'Are you sure you want to cancel this event? This cannot be undone.\');"
         >
             Cancel Event
         </a>';
 
-    $output .= '</div>'; // close Cancel Event container
+    $output .= '</div>'; // close cancel card
 
     $output .= '</div>'; // close overview container
 
