@@ -48,10 +48,10 @@ add_shortcode('user-dashboard', function() {
 
             <div class="tab-content">
                 <div class="tab-panel active" id="upcoming-reg">
-                    <?php echo do_shortcode(''); ?>
+                    <p>Put upcoming registrations here!</p>
                 </div>
                 <div class="tab-panel" id="past-reg">
-                    <?php echo do_shortcode(''); ?>
+                    <p>Put past registrations here!</p>
                 </div>
             </div>
         </section>
@@ -146,9 +146,15 @@ add_shortcode('user-dashboard', function() {
             position: relative;
         }
 
-        /* Event Cards */
-        .user-upcoming-events-wrapper, .user-past-events-wrapper { display:flex; justify-content:center; width:100%; }
-        .user-upcoming-events, .user-past-events {
+        /* Event Grid Wrappers */
+        .user-upcoming-events-wrapper,
+        .user-past-events-wrapper {
+            display:flex;
+            justify-content:center;
+            width:100%;
+        }
+        .user-upcoming-events,
+        .user-past-events {
             display:grid;
             grid-template-columns: repeat(2, minmax(0, 400px));
             gap: 20px;
@@ -156,14 +162,19 @@ add_shortcode('user-dashboard', function() {
             max-width: 850px;
             width: 100%;
         }
-        @media (max-width: 768px) { .user-upcoming-events, .user-past-events { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) {
+            .user-upcoming-events,
+            .user-past-events { grid-template-columns: 1fr; }
+        }
 
+        /* Glassmorphic Event Card (Standard Glass Card Rules) */
         .event-card {
             display: block;
             border-radius: 15px;
             overflow: hidden;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05); /* 5% opacity */
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             width: 100%;
@@ -172,17 +183,67 @@ add_shortcode('user-dashboard', function() {
             transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
             position: relative;
         }
-        .event-card:hover { transform: translateY(-6px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); background: rgba(255,255,255,0.15); }
-        .event-card img { width: 100%; height: 250px; object-fit: cover; transition: transform 0.3s ease, filter 0.3s ease; filter: brightness(0.95); }
-        .event-card:hover img { transform: scale(1.03); filter: brightness(1); }
-        .event-card-content { padding: 15px; text-align: center; background: rgba(255,255,255,0.25); backdrop-filter: blur(5px); border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; }
-        .event-date { font-weight: bold; color:#333; margin-bottom:6px; }
-        .event-card-content strong { display:block; font-size:1.1em; }
-        .event-badge { position:absolute; top:10px; left:10px; background:rgba(255,255,255,0.2); backdrop-filter:blur(5px); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.75em; font-weight:600; z-index:2; }
+        .event-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .event-card, .event-card * {
+            text-decoration: none !important;
+            color: inherit !important;
+        }
+
+        /* Event Card Image */
+        .event-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            transition: transform 0.3s ease, filter 0.3s ease;
+            filter: brightness(0.95);
+        }
+        .event-card:hover img {
+            transform: scale(1.03);
+            filter: brightness(1);
+        }
+
+        /* Event Card Content */
+        .event-card-content {
+            padding: 15px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+        .event-date {
+            font-weight: normal;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .event-card-content strong {
+            display:block;
+            font-size:1.2em;
+        }
+
+        /* Optional Badge (not output yet) */
+        .event-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(5px);
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            z-index: 2;
+        }
     </style>
 
     <script>
-        // Tab initialization function (can be reused after AJAX refresh)
+        // Tab initialization
         function initTabs() {
             document.querySelectorAll('.tabs').forEach(tabContainer => {
                 const buttons = tabContainer.querySelectorAll('.tab-btn');
@@ -217,49 +278,8 @@ add_shortcode('user-dashboard', function() {
                 });
             });
         }
-
-        initTabs(); // Initialize tabs on page load
-
-        // AJAX auto-refresh for events
-        function refreshEvents() {
-            fetch("<?php echo admin_url('admin-ajax.php'); ?>?action=refresh_user_events")
-                .then(response => response.json())
-                .then(data => {
-                    if(data.success) {
-                        document.querySelector('#upcoming').innerHTML = data.data.upcoming;
-                        document.querySelector('#past').innerHTML = data.data.past;
-                        initTabs(); // Re-initialize tab JS after refresh
-                    }
-                })
-                .catch(err => console.error(err));
-        }
-
-        // Refresh every 30 seconds
-        setInterval(refreshEvents, 30000);
-
-        // Refresh immediately on page load
-        refreshEvents();
+        initTabs();
     </script>
     <?php
-
     return ob_get_clean();
 });
-
-// -------------------------------
-// AJAX handler for auto-refreshing events
-// -------------------------------
-add_action('wp_ajax_refresh_user_events', function() {
-    if (!is_user_logged_in()) {
-        wp_send_json_error('User not logged in');
-    }
-
-    // Generate updated HTML for both upcoming and past events
-    $upcoming = do_shortcode('[user-upcoming-events]');
-    $past     = do_shortcode('[user-past-events]');
-
-    wp_send_json_success([
-        'upcoming' => $upcoming,
-        'past'     => $past
-    ]);
-});
-?>
