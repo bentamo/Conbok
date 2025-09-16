@@ -176,7 +176,7 @@ add_shortcode('create-event', function ($atts = []) {
                 <button type="submit" class="create-event-btn">
                     <?php echo $button_text; ?>
                 </button>
-            </div>s
+            </div>
         </form>
     </div>
 
