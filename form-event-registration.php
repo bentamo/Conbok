@@ -82,6 +82,36 @@ function event_registration() {
             }
         }
 
+        // Prevent duplicate registration
+        $current_user_id = get_current_user_id();
+        $user_email = $current_user->user_email;
+
+        // Check if user already registered
+        $existing_registration = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}event_registrations WHERE event_id = %d AND user_id = %d",
+                $post_id,
+                $current_user_id
+            )
+        );
+
+        // Optional: also check guest table if you allow guest registration
+        $existing_guest = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}event_guests WHERE event_id = %d AND email = %s",
+                $post_id,
+                $user_email
+            )
+        );
+
+        if ($existing_registration > 0 || $existing_guest > 0) {
+            return '<script>
+                        alert("⚠️ You have already registered for this event!");
+                        window.location.href = "' . esc_url(home_url('/event-page/' . $slug)) . '";
+                    </script>';
+        }
+
+
         // Insert registration into custom table
         $table = $wpdb->prefix . 'event_registrations';
         $wpdb->insert($table, [
@@ -95,7 +125,7 @@ function event_registration() {
         ]);
 
         // Success message with alert + auto-redirect
-        $redirect_url = get_permalink($post_id);
+        $redirect_url = home_url( '/event-page/' . $slug . '/' ); 
         return '<script>
                     alert("✅ Registration submitted for ' . esc_js($event_title) . '");
                     window.location.href = "' . esc_url($redirect_url) . '";
