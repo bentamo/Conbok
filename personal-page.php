@@ -51,7 +51,7 @@ add_shortcode('user-dashboard', function() {
                     <?php echo do_shortcode('[user-upcoming-registrations]'); ?>
                 </div>
                 <div class="tab-panel" id="past-reg">
-                    <p>Put past registrations here!</p>
+                    <?php echo do_shortcode('[user-past-registrations]'); ?>
                 </div>
             </div>
         </section>
@@ -270,7 +270,7 @@ add_shortcode('user-dashboard', function() {
             background: rgba(144, 238, 144, 0.95); /* softer green */
         }
 
-        .event-badge.status-badge.rejected {
+        .event-badge.status-badge.declined {
             background: rgba(255, 128, 128, 0.95); /* softer red */
         }
         
