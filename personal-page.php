@@ -48,7 +48,7 @@ add_shortcode('user-dashboard', function() {
 
             <div class="tab-content">
                 <div class="tab-panel active" id="upcoming-reg">
-                    <p>Put upcoming registrations here!</p>
+                    <?php echo do_shortcode('[user-upcoming-registrations]'); ?>
                 </div>
                 <div class="tab-panel" id="past-reg">
                     <p>Put past registrations here!</p>
@@ -248,13 +248,30 @@ add_shortcode('user-dashboard', function() {
 
         /* Ended badge (subtle glass) */
         .event-badge.ended {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            color: #fff !important;
+            color: #000 !important;
             font-weight: 500;
             box-shadow: inset 0 1px 3px rgba(255,255,255,0.2),
                         0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        /* Registrant status badges (upper-right) with soft colors and black text */
+        .event-badge.status-badge {
+            color: #000 !important; /* black text */
+        }
+
+        .event-badge.status-badge.pending {
+            background: rgba(255, 230, 128, 0.95); /* softer yellow */
+        }
+
+        .event-badge.status-badge.accepted {
+            background: rgba(144, 238, 144, 0.95); /* softer green */
+        }
+
+        .event-badge.status-badge.rejected {
+            background: rgba(255, 128, 128, 0.95); /* softer red */
         }
         
     </style>

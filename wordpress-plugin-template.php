@@ -45,6 +45,7 @@ require_once 'event-details.php';
 require_once 'personal-page.php';
 require_once 'user-upcoming-events.php';
 require_once 'user-past-events.php';
+require_once 'user-upcoming-registrations.php';
 
 // Buttons
 require_once 'btn-back-to-view-events.php';
