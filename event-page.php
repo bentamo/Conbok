@@ -44,6 +44,17 @@ function conbook_event_page_shortcode($atts) {
     if (!$event) return '';
 
     $post_id = $event->ID;
+    // -------------------------------
+// Check if event has ended
+// -------------------------------
+    $end_datetime   = get_post_meta($post_id, '_end_datetime', true);
+    $now            = current_time('Y-m-d H:i:s');
+
+    $is_past_event = false;
+    if ($end_datetime && strtotime($end_datetime) < strtotime($now)) {
+        $is_past_event = true;
+    }
+
     
     // Start building output with CSS
     $output  = $css;
@@ -254,15 +265,73 @@ function conbook_event_page_shortcode($atts) {
     }
     $output .= '</div></div>';
 
-    // Join / Manage Event button
     $current_user_id = get_current_user_id();
     $author_id = intval($event->post_author);
-    $button_text = 'Join Event';
-    $button_url  = home_url('/event-registration/' . $slug);
-    if ( $current_user_id > 0 && $current_user_id === $author_id ) {
-        $button_text = 'Manage Event';
-        $button_url  = home_url('/event-dashboard/' . $slug);
+
+    if ($current_user_id === $author_id) {
+        // Organizer always sees Manage Event
+        $button_text  = 'Manage Event';
+        $button_url   = home_url('/event-dashboard/' . $slug);
+        $button_style = '';
+    } else if ($is_past_event) {
+        // Registrant sees past event
+        $button_text  = 'Event Ended';
+        $button_url   = '#';
+        $button_style = 'pointer-events:none; cursor:default; opacity:0.6;';
+    } else if ($current_user_id > 0) {
+        // Registrant logic for upcoming events
+        global $wpdb;
+        $registrations_table = $wpdb->prefix . 'event_registrations';
+
+        $registration = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $registrations_table WHERE event_id = %d AND user_id = %d",
+                $post_id,
+                $current_user_id
+            ),
+            ARRAY_A
+        );
+
+        if ($registration) {
+            switch ($registration['status']) {
+                case 'pending':
+                case 'accepted':
+                    $button_text = 'Cancel Registration';
+                    $button_url  = home_url('/event-registration/cancel/' . $registration['id']);
+                    break;
+                case 'declined':
+                    $button_text = 'Remove Event';
+                    $button_url  = home_url('/event-registration/remove/' . $registration['id']);
+                    break;
+            }
+        } else {
+            $user_email = wp_get_current_user()->user_email;
+            $guests_table = $wpdb->prefix . 'event_guests';
+            $existing_email = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM $guests_table WHERE event_id = %d AND email = %s",
+                    $post_id,
+                    $user_email
+                )
+            );
+
+            if ($existing_email > 0) {
+                $button_text = 'Already Registered';
+                $button_url  = '#';
+            } else {
+                $button_text  = 'Join Event';
+                $button_url   = home_url('/event-registration/' . $slug);
+                $button_style = '';
+            }
+        }
+    } else {
+        // Not logged in
+        $button_text = 'Join Event';
+        $button_url  = home_url('/event-registration/' . $slug);
+        $button_style = '';
     }
+
+
     $output .= '<div style="margin-bottom:20px;">
         <a href="' . esc_url($button_url) . '" style="
             display:block; width:100%; padding:12px 20px;
@@ -273,6 +342,7 @@ function conbook_event_page_shortcode($atts) {
             box-shadow:0 2px 6px rgba(0,0,0,0.2); transition:all 0.3s ease;
             transform:translateY(0);
             position:relative;
+            ' . $button_style . '
         "
         onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px #F07BB1\'; this.style.color=\'#F07BB1\';"
         onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
