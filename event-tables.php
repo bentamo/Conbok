@@ -63,9 +63,11 @@ function event_tables_create() {
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) NOT NULL,
         contact_number VARCHAR(50) NULL,
+        token CHAR(36) NOT NULL,  -- UUID v4 token
         status ENUM('Pending','Checked In','No Show','Cancelled') NOT NULL DEFAULT 'Pending',
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
+        UNIQUE KEY idx_token (token),       -- unique constraint on token
         KEY idx_registration_id (registration_id),
         KEY idx_status (status)
     ) $charset_collate;";

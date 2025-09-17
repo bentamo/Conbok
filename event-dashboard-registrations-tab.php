@@ -186,6 +186,7 @@ function conbook_update_registration_status() {
                                     'name' => $user_info->display_name,
                                     'email' => $user_info->user_email,
                                     'contact_number' => $contact_number ? $contact_number : '',
+                                    'token' => wp_generate_uuid4(),
                                     'status' => 'Pending',
                                     'created_at' => current_time('mysql')
                                 ],
