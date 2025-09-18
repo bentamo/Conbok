@@ -296,8 +296,38 @@ function conbook_event_page_shortcode($atts) {
             switch ($registration['status']) {
                 case 'pending':
                 case 'accepted':
+                    // Minimal logic: add a description about QR code
                     $button_text = 'Cancel Registration';
                     $button_url  = home_url('/event-registration/cancel/' . $registration['id']);
+
+                    // Add clickable link to show QR code popup (text centered)
+                    $output .= '<p style="margin-bottom:10px; font-size:14px; color:#555; text-align:center;">
+                                    <a href="#" id="view-qr-link" style="color:#FF4B2B; text-decoration:underline; cursor:pointer;">
+                                        View your QR code for event entry
+                                    </a>
+                                </p>';
+
+                    // Embed QR code in a hidden popup (bottom-right)
+                    $output .= '<div id="qr-popup" class="glass-base glass-modal" style="
+                        display:none; /* hidden by default */
+                        position:fixed; bottom:20px; right:20px; z-index:9999;
+                        padding:25px; flex-direction:column; align-items:center;
+                        max-width:250px; text-align:center; font-family:Inter,sans-serif;
+                        animation: slideInUp 0.6s ease-out;
+                    ">
+                        <span onclick="document.getElementById(\'qr-popup\').style.display=\'none\'" style="
+                            position:absolute; top:8px; right:10px; font-size:18px; font-weight:bold; color:#888; cursor:pointer;">&times;</span>
+                        ' . do_shortcode('[qrcode]') . '
+                    </div>';
+
+                    // Add inline JS to toggle the popup
+                    $output .= '<script>
+                        document.getElementById("view-qr-link").addEventListener("click", function(e){
+                            e.preventDefault();
+                            var popup = document.getElementById("qr-popup");
+                            popup.style.display = "flex"; // show only on click
+                        });
+                    </script>';
                     break;
                 case 'declined':
                     $button_text = 'Remove Event';
