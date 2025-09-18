@@ -390,4 +390,71 @@ function conbook_event_page_shortcode($atts) {
     return $output;
 }
 add_shortcode('event-page', 'conbook_event_page_shortcode');
+// -------------------------------
+// Register routes for event actions
+// -------------------------------
+add_action('init', function() {
+    add_rewrite_rule('^event-registration/cancel/([0-9]+)/?', 'index.php?event_action=cancel&registration_id=$matches[1]', 'top');
+    add_rewrite_rule('^event-registration/remove/([0-9]+)/?', 'index.php?event_action=remove&registration_id=$matches[1]', 'top');
+    add_rewrite_rule('^event-registration/([^/]+)/?', 'index.php?event_action=join&event_slug=$matches[1]', 'top');
+});
+
+// Allow custom query vars
+add_filter('query_vars', function($vars) {
+    $vars[] = 'event_action';
+    $vars[] = 'registration_id';
+    $vars[] = 'event_slug';
+    return $vars;
+});
+
+// -------------------------------
+// Handle cancel/remove/join logic
+// -------------------------------
+add_action('template_redirect', function() {
+    if (!is_user_logged_in()) {
+        return;
+    }
+
+    global $wpdb;
+    $user_id        = get_current_user_id();
+    $table_reg      = $wpdb->prefix . 'event_registrations';
+    $table_guests   = $wpdb->prefix . 'event_guests';
+
+    $action         = get_query_var('event_action');
+    $registration_id= intval(get_query_var('registration_id'));
+    $event_slug     = sanitize_text_field(get_query_var('event_slug'));
+
+    if ($action === 'cancel' && $registration_id) {
+        $registration = $wpdb->get_row($wpdb->prepare("
+            SELECT * FROM {$table_reg}
+            WHERE id = %d AND user_id = %d
+        ", $registration_id, $user_id));
+
+        if ($registration) {
+            if ($registration->status === 'accepted') {
+                $wpdb->delete($table_guests, [
+                    'event_id' => $registration->event_id,
+                    'user_id'  => $user_id,
+                ]);
+            }
+            $wpdb->delete($table_reg, ['id' => $registration_id, 'user_id' => $user_id]);
+        }
+
+        wp_redirect(home_url('/view-events'));
+        exit;
+    }
+
+    if ($action === 'remove' && $registration_id) {
+        $wpdb->delete($table_reg, ['id' => $registration_id, 'user_id' => $user_id]);
+        wp_redirect(home_url('/view-events'));
+        exit;
+    }
+
+    if ($action === 'join' && $event_slug) {
+        // You can add join logic here later
+        wp_redirect(home_url('/event-registration/' . $event_slug));
+        exit;
+    }
+});
+
 ?>
