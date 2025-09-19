@@ -30,34 +30,19 @@ require_once 'includes/class-wordpress-plugin-template-settings.php';
 require_once 'includes/lib/class-wordpress-plugin-template-admin-api.php';
 require_once 'includes/lib/class-wordpress-plugin-template-post-type.php';
 require_once 'includes/lib/class-wordpress-plugin-template-taxonomy.php';
-require_once 'registration_form.php';
-require_once 'landing_page.php';
-require_once 'my_events.php';
 require_once 'create-event.php';
 require_once 'events-cpt.php';
 require_once 'qr-scanner.php';
-require_once 'qr-generator.php';
 
-// Event Page
-require_once 'event-details.php';
-
-// Personal Page(?)
+// Personal Page
 require_once 'personal-page.php';
 require_once 'user-upcoming-events.php';
 require_once 'user-past-events.php';
 require_once 'user-upcoming-registrations.php';
 require_once 'user-past-registrations.php';
 
-// Buttons
-require_once 'btn-back-to-view-events.php';
-require_once 'btn-join-event.php';
-require_once 'btn-manage-event.php';
-
 // Forms
 require_once 'form-event-registration.php';
-
-require_once 'show-event-registrants.php';
-
 require_once 'event-page.php';
 require_once 'event-dashboard.php';
 require_once 'event-dashboard-overview-tab.php';
