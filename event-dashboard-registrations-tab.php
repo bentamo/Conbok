@@ -152,9 +152,9 @@ function conbook_event_dashboard_registrations_tab_shortcode() {
         </table>
     </div>
 
-    /* ==============================================
+    <!-- /* ==============================================
      * SECTION 2: INLINE JAVASCRIPT FOR AJAX
-     * ============================================== */
+     * ============================================== */ -->
     <script type="text/javascript">
         /**
          * Registration Status Update Script

@@ -119,9 +119,9 @@ function conbook_event_dashboard_shortcode($atts) {
                 <div class="tab-pane" id="insights" style="display:none;">Insights content goes here.</div>
             </div>
 
-            /* ==============================================
+            <!-- /* ==============================================
              * SECTION 1.3: INLINE JAVASCRIPT FOR TAB SWITCHING
-             * ============================================== */
+             * ============================================== */ -->
             <script>
             /**
              * Handles the interactive switching between dashboard tabs.

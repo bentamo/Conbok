@@ -125,9 +125,9 @@ function conbook_event_dashboard_guests_tab_shortcode() {
         </table>
     </div>
 
-    /* ==============================================
+    <!-- /* ==============================================
      * SECTION 2: INLINE JAVASCRIPT FOR AJAX
-     * ============================================== */
+     * ============================================== */ -->
     <script type="text/javascript">
         /**
          * Guest Status Update Script
