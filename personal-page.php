@@ -1,23 +1,58 @@
 <?php
-// -------------------------------
-// Shortcode: [user-dashboard]
-// Displays user dashboard with upcoming/past events and registrations
-// -------------------------------
-add_shortcode('user-dashboard', function() {
+/**
+ * User Dashboard Shortcode.
+ *
+ * This file contains the shortcode to display a comprehensive user dashboard.
+ * The dashboard is divided into two main sections: events created by the user
+ * and events the user has registered for. Both sections feature a tabbed
+ * interface to switch between "Upcoming" and "Past" events.
+ *
+ * The shortcode dynamically loads the content for each tab by calling other,
+ * more specific shortcodes. It also includes styling and a simple JavaScript
+ * function to manage the tab-switching functionality, enhancing the user experience.
+ *
+ * @package ConBook
+ * @subpackage Shortcodes
+ * @since 1.0.0
+ */
 
+/* ==============================================
+ * SECTION 1: USER DASHBOARD SHORTCODE
+ * ============================================== */
+
+/**
+ * Renders the main user dashboard with events and registrations.
+ *
+ * This shortcode acts as a container for displaying a user's activity. It checks
+ * if the user is logged in, then renders a two-section dashboard. The first section
+ * shows events the user has created, while the second shows events they have
+ * registered for. The content for these sections is dynamically loaded using
+ * nested shortcodes, ensuring a clean and modular structure.
+ *
+ * The function also includes inline CSS for styling the dashboard's layout,
+ * a "Create Event" button, and a dynamic tab system. It uses `ob_start()`
+ * to capture the HTML output, which is the standard method for shortcode
+ * rendering in WordPress.
+ *
+ * @since 1.0.0
+ *
+ * @return string The HTML output for the user dashboard.
+ */
+add_shortcode('user-dashboard', function() {
+    // Check if the user is logged in; if not, return a login prompt.
     if (!is_user_logged_in()) {
         return '<p>Please log in to view your dashboard.</p>';
     }
 
+    // Start output buffering to capture the HTML content.
     ob_start();
     ?>
     <div class="dashboard-container">
 
-        <!-- My Events Section -->
         <section class="dashboard-section">
             <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2 style="font-size:28px; font-weight:bold; background: linear-gradient(135deg,#ff4b2b,#7d3fff); -webkit-background-clip: text; color: transparent;">My Events</h2>
-                <a href="<?php echo site_url('/create-event'); ?>" class="create-event-btn">Create Event +</a>
+                <a href="<?php echo esc_url(site_url('/create-event')); ?>" class="create-event-btn">Create Event +</a>
             </div>
 
             <div class="tabs">
@@ -36,7 +71,6 @@ add_shortcode('user-dashboard', function() {
             </div>
         </section>
 
-        <!-- My Registrations Section -->
         <section class="dashboard-section" style="margin-top:60px;">
             <h2 style="font-size:28px; font-weight:bold; background: linear-gradient(135deg,#ff4b2b,#7d3fff); -webkit-background-clip: text; color: transparent; margin-bottom:20px;">My Registrations</h2>
 
@@ -312,8 +346,9 @@ add_shortcode('user-dashboard', function() {
                 });
             });
         }
-        initTabs();
+        document.addEventListener('DOMContentLoaded', initTabs);
     </script>
     <?php
+    // Return the captured HTML.
     return ob_get_clean();
 });

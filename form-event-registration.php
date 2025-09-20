@@ -1,92 +1,141 @@
 <?php
+/**
+ * Shortcode for Event Registration Form.
+ *
+ * This file contains the shortcode to display a frontend form that allows users
+ * to register for a specific event, select a ticket and payment method, and
+ * upload a proof of payment. It also handles the form submission logic,
+ * including validation, data sanitization, and database insertion.
+ *
+ * @package ConBook
+ * @subpackage Shortcodes
+ */
+
+/* ==============================================
+ * SECTION 1: EVENT REGISTRATION SHORTCODE
+ * ============================================== */
+
+/**
+ * Renders the event registration form and processes its submission.
+ *
+ * This function serves two main purposes:
+ * 1. It displays a dynamic form to the user, populated with details of a specific
+ * event identified by its slug in the URL (e.g., `event-registration/my-event-slug`).
+ * The form includes fields for the user's details, ticket selection, payment
+ * method selection, and a file upload for proof of payment.
+ * 2. It handles the form submission via a POST request. It performs crucial security
+ * checks, sanitizes all incoming data, handles the secure upload of the
+ * payment proof, prevents duplicate registrations, and inserts the
+ * registration details into the `event_registrations` custom database table.
+ *
+ * @since 1.0.0
+ *
+ * @return string The HTML output of the form or a success/error message with a redirect script.
+ */
 function event_registration() {
     global $wpdb;
 
-    // Default values
+    // SECTION 1.1: Data Initialization and Retrieval
+    // ---------------------------------------------
     $event_title     = 'Event';
     $post_id         = 0;
-    $user_id         = 0;
     $ticket_options  = [];
     $payment_options = [];
 
-    // Get the event slug from the URL
+    // SECURITY: Sanitize and validate event slug from URL.
     $slug = sanitize_text_field(get_query_var('event_slug', ''));
-    if (!$slug) return '';
+    if (empty($slug)) {
+        return '<p>Event not found. Please check the URL.</p>';
+    }
 
-    // Get the event by slug
+    // Retrieve the event post object by its slug.
     $event = get_page_by_path($slug, OBJECT, 'event');
-    if (!$event) return '';
+    if (!$event) {
+        return '<p>Event not found. Please check the URL.</p>';
+    }
 
     $post_id     = $event->ID;
     $event_title = $event->post_title;
-    $user_id     = intval($event->post_author); // Event creator ID
 
-    // Retrieve tickets from event_tickets table
+    // Retrieve tickets from event_tickets table using prepared statements for security.
     $tickets = $wpdb->get_results(
         $wpdb->prepare("SELECT id, name, price FROM {$wpdb->prefix}event_tickets WHERE event_id = %d", $post_id),
         ARRAY_A
     );
     if (!empty($tickets)) {
         foreach ($tickets as $t) {
-            $ticket_options[$t['id']] = $t['name'] . ' - Php ' . number_format(floatval($t['price']), 2);
+            $ticket_options[$t['id']] = esc_html($t['name']) . ' - Php ' . number_format(floatval($t['price']), 2);
         }
     }
 
-    // Retrieve payment methods from event_payment_methods table
+    // Retrieve payment methods from event_payment_methods table.
     $payments = $wpdb->get_results(
         $wpdb->prepare("SELECT id, name, details FROM {$wpdb->prefix}event_payment_methods WHERE event_id = %d", $post_id),
         ARRAY_A
     );
     if (!empty($payments)) {
         foreach ($payments as $p) {
-            $payment_options[$p['id']] = $p['name'] . ' - ' . $p['details'];
+            $payment_options[$p['id']] = esc_html($p['name']) . ' - ' . esc_html($p['details']);
         }
     }
 
-    // Fallback if no tickets or payments
-    if (empty($ticket_options))  $ticket_options  = [0 => 'No tickets available'];
-    if (empty($payment_options)) $payment_options = [0 => 'No payment methods available'];
+    // Fallback if no tickets or payments are configured.
+    if (empty($ticket_options)) {
+        $ticket_options = [0 => 'No tickets available'];
+    }
+    if (empty($payment_options)) {
+        $payment_options = [0 => 'No payment methods available'];
+    }
 
-    // Get current logged-in user info
+    // Get current logged-in user information for pre-filling the form.
     $current_user = wp_get_current_user();
     $first_name   = $current_user->first_name ?? '';
     $last_name    = $current_user->last_name ?? '';
     $email        = $current_user->user_email ?? '';
     $contact      = get_user_meta($current_user->ID, 'contact-number-textbox', true) ?? '';
 
-    // Handle form submission
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
-        isset($_POST['event_registration_nonce']) &&
-        wp_verify_nonce($_POST['event_registration_nonce'], 'event_registration')) {
+    // SECTION 1.2: Form Submission Handling
+    // ------------------------------------
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        // Sanitize user inputs
+        // SECURITY: Verify nonce to prevent CSRF attacks.
+        if (!isset($_POST['event_registration_nonce']) || !wp_verify_nonce($_POST['event_registration_nonce'], 'event_registration')) {
+            wp_die('Security check failed. Please try again.');
+        }
+
+        // SANITIZATION: Sanitize all user inputs before use.
         $ticket_id         = intval($_POST['ticket_id']);
         $payment_method_id = intval($_POST['payment_method_id']);
         $proof_id          = 0;
 
-        // Handle file upload securely
+        // Handle file upload securely.
         if (!empty($_FILES['proof_of_payment']['name'])) {
+            // Load required WordPress media handling files.
             require_once ABSPATH . 'wp-admin/includes/file.php';
             require_once ABSPATH . 'wp-admin/includes/image.php';
+            require_once ABSPATH . 'wp-admin/includes/media.php';
+
+            // Process the file upload.
             $upload = wp_handle_upload($_FILES['proof_of_payment'], ['test_form' => false]);
 
             if ($upload && !isset($upload['error'])) {
+                // Create the attachment post and generate metadata.
                 $filetype   = wp_check_filetype($upload['file']);
                 $attachment = [
                     'post_mime_type' => $filetype['type'],
                     'post_title'     => sanitize_file_name($_FILES['proof_of_payment']['name']),
+                    'post_content'   => '',
                     'post_status'    => 'inherit'
                 ];
-                $proof_id = wp_insert_attachment($attachment, $upload['file']);
+                $proof_id = wp_insert_attachment($attachment, $upload['file'], $post_id);
                 wp_generate_attachment_metadata($proof_id, $upload['file']);
             }
         }
 
-        // Prevent duplicate registration
+        // Prevent duplicate registration for the current user.
         $current_user_id = get_current_user_id();
-        $user_email = $current_user->user_email;
 
-        // Check if user already registered
+        // Check if user already registered for this event.
         $existing_registration = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT COUNT(*) FROM {$wpdb->prefix}event_registrations WHERE event_id = %d AND user_id = %d",
@@ -95,44 +144,49 @@ function event_registration() {
             )
         );
 
-        // Optional: also check guest table if you allow guest registration
-        $existing_guest = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$wpdb->prefix}event_guests WHERE event_id = %d AND email = %s",
-                $post_id,
-                $user_email
-            )
-        );
-
-        if ($existing_registration > 0 || $existing_guest > 0) {
+        if ($existing_registration > 0) {
+            // Inform the user and redirect to the event page.
+            $redirect_url = esc_url(home_url('/event-page/' . $slug));
             return '<script>
                         alert("⚠️ You have already registered for this event!");
-                        window.location.href = "' . esc_url(home_url('/event-page/' . $slug)) . '";
+                        window.location.href = "' . $redirect_url . '";
                     </script>';
         }
 
-
-        // Insert registration into custom table
+        // Insert registration into custom table.
         $table = $wpdb->prefix . 'event_registrations';
-        $wpdb->insert($table, [
-            'user_id'           => get_current_user_id(),
-            'event_id'          => $post_id,
-            'ticket_id'         => $ticket_id,
-            'payment_method_id' => $payment_method_id,
-            'proof_id'          => $proof_id,
-            'status'            => 'pending',
-            'created_at'        => current_time('mysql')
-        ]);
+        $wpdb->insert(
+            $table,
+            [
+                'user_id'           => $current_user_id,
+                'event_id'          => $post_id,
+                'ticket_id'         => $ticket_id,
+                'payment_method_id' => $payment_method_id,
+                'proof_id'          => $proof_id,
+                'status'            => 'pending',
+                'created_at'        => current_time('mysql')
+            ],
+            [
+                '%d', // user_id
+                '%d', // event_id
+                '%d', // ticket_id
+                '%d', // payment_method_id
+                '%d', // proof_id
+                '%s', // status
+                '%s'  // created_at
+            ]
+        );
 
-        // Success message with alert + auto-redirect
-        $redirect_url = home_url( '/event-page/' . $slug . '/' ); 
+        // Success message with alert + auto-redirect.
+        $redirect_url = esc_url(home_url('/event-page/' . $slug . '/'));
         return '<script>
                     alert("✅ Registration submitted for ' . esc_js($event_title) . '");
-                    window.location.href = "' . esc_url($redirect_url) . '";
+                    window.location.href = "' . $redirect_url . '";
                 </script>';
     }
 
-    // Display registration form
+    // SECTION 1.3: HTML Form Output
+    // ----------------------------
     ob_start(); ?>
     <style>
         /* Glassmorphic form container */
@@ -221,7 +275,9 @@ function event_registration() {
             background: rgba(255,255,255,0.1); 
         }
 
-        .form-box input[type="file"] {display:none;}
+        .form-box input[type="file"] {
+            display:none;
+        }
 
         .form-box input[type="submit"] {
             width:100%; 
@@ -234,17 +290,16 @@ function event_registration() {
             font-weight:600; 
             font-size:1rem; 
             cursor:pointer; 
-            transition: all 0.3s ease;          /* Smooth transition for shadow, lift, color */
-            transform: translateY(0);           /* Initial position */
-            box-shadow: 0 4px 10px rgba(125,63,255,0.4); /* Subtle default shadow */
+            transition: all 0.3s ease; 
+            transform: translateY(0); 
+            box-shadow: 0 4px 10px rgba(125,63,255,0.4);
         }
 
         .form-box input[type="submit"]:hover {
-            transform: translateY(-2px);      /* Slight text color change on hover */
+            transform: translateY(-2px); 
             box-shadow: 0 4px 15px #F07bb1;
             color: #F07bb1 !important;
         }
-
     </style>
 
     <div class="form-box">
