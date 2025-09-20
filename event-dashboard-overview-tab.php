@@ -1,29 +1,63 @@
 <?php
-// Shortcode: [event-dashboard-overview-tab]
+/**
+ * Event Dashboard Overview Tab Shortcode
+ *
+ * This shortcode displays a summary of a single event for the event organizer.
+ * It shows key information such as the event's title, date, time, location,
+ * ticket options, and payment methods. It also provides buttons for editing,
+ * sharing, and canceling the event. The cancellation logic is handled
+ * by this shortcode, which securely deletes all associated data.
+ *
+ * @usage [event-dashboard-overview-tab]
+ * @param array $atts Shortcode attributes.
+ * @return string The complete HTML output for the event overview dashboard.
+ */
 function conbook_event_dashboard_overview_tab_shortcode($atts) {
     global $wpdb;
 
+    /* ==============================================
+     * SECTION 1: EVENT DATA RETRIEVAL
+     * ============================================== */
+
     // Get the event slug from the URL
+    /**
+     * @var string The slug of the event post to be displayed. It's retrieved from
+     * the `event_slug` URL query variable and sanitized for security.
+     */
     $slug = sanitize_text_field(get_query_var('event_slug', ''));
     if (!$slug) return '';
 
     // Get the event by slug
+    /**
+     * @var WP_Post|null The WordPress post object for the 'event' custom post type.
+     * This is the main data source for the overview.
+     */
     $event = get_page_by_path($slug, OBJECT, 'event');
     if (!$event) return '';
 
+    /**
+     * @var int The ID of the event post. This is used to fetch post metadata and
+     * data from custom tables.
+     */
     $post_id = $event->ID;
 
-    // -------------------------------
-    // Cancel Event logic
-    // -------------------------------
+    /* ==============================================
+     * SECTION 2: CANCEL EVENT LOGIC
+     * ============================================== */
+
+    /**
+     * This section handles the irreversible cancellation of an event. It checks for a
+     * `cancel_event=1` query parameter in the URL. If found, it systematically deletes
+     * all event-related data from both WordPress and custom database tables.
+     */
     if (isset($_GET['cancel_event']) && $_GET['cancel_event'] == 1) {
-        // Delete featured image if exists
+        // Delete featured image if it exists.
         $thumb_id = get_post_thumbnail_id($post_id);
         if ($thumb_id) {
             wp_delete_attachment($thumb_id, true);
         }
 
-        // Delete proof(s) of payment stored as meta (if any)
+        // Delete proof(s) of payment stored as post meta (if any).
         $proof_ids = get_post_meta($post_id, '_proof_of_payment_ids', true);
         if (!empty($proof_ids)) {
             if (!is_array($proof_ids)) {
@@ -35,7 +69,7 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
             delete_post_meta($post_id, '_proof_of_payment_ids');
         }
 
-        // Delete registrations for this event
+        // Delete registrations for this event from the custom table.
         $registrations_table = $wpdb->prefix . 'event_registrations';
         $registrations = $wpdb->get_results(
             $wpdb->prepare("SELECT * FROM $registrations_table WHERE event_id = %d", $post_id),
@@ -43,23 +77,29 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
         );
 
         if ($registrations) {
+            // Also delete payment proof attachments linked to registrations.
             foreach ($registrations as $reg) {
                 if (!empty($reg['proof_id'])) {
                     wp_delete_attachment(intval($reg['proof_id']), true);
                 }
             }
+            // Delete all registration rows for the event from the custom table.
             $wpdb->delete($registrations_table, ['event_id' => $post_id]);
         }
 
-        // Delete the event itself
+        // Delete the event post itself. `true` forces deletion and bypasses trash.
         wp_delete_post($post_id, true);
 
-        // Redirect back to events list
+        // Redirect the user back to the main events list page after deletion.
         wp_safe_redirect(home_url('/view-events/'));
         exit;
     }
 
-    // Start output
+    /* ==============================================
+     * SECTION 3: HTML MARKUP FOR OVERVIEW CARDS
+     * ============================================== */
+     
+    // Start output buffering to build the HTML string.
     $output = '<div class="event-dashboard-overview" style="padding-left:20px; padding-right:20px;">';
 
     // Event Title
@@ -69,9 +109,21 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
     }
 
     // Date and Time Card
+    /**
+     * @var string The event's start date, retrieved from post meta.
+     */
     $start_date = get_post_meta($post_id, '_start_date', true);
+    /**
+     * @var string The event's end date, retrieved from post meta.
+     */
     $end_date   = get_post_meta($post_id, '_end_date', true);
+    /**
+     * @var string The event's start time, retrieved from post meta.
+     */
     $start_time = get_post_meta($post_id, '_start_time', true);
+    /**
+     * @var string The event's end time, retrieved from post meta.
+     */
     $end_time   = get_post_meta($post_id, '_end_time', true);
 
     $output .= '<div class="event-datetime-card" style="display:flex; align-items:center; gap:10px; padding:15px; border:1px solid #ddd; border-radius:20px; margin-bottom:15px; background:#fff;">';
@@ -233,99 +285,29 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
 
     $output .= '<div class="event-organizer-card" style="display:flex; align-items:center; gap:10px; padding:15px; border:1px solid #ddd; border-radius:20px; margin-bottom:15px; background:#fff;">';
 
-        // Organizer Icon (same style)
-        $output .= '<div class="event-organizer-icon" style="flex-shrink:0; display:flex; align-items:center; justify-content:center;">';
-        $output .= '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="40" height="40" viewBox="0 0 24 24" style="color:#444;">
-            <path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/>
-        </svg>';
-        $output .= '</div>';
+    // Organizer Icon (same style)
+    $output .= '<div class="event-organizer-icon" style="flex-shrink:0; display:flex; align-items:center; justify-content:center;">';
+    $output .= '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="40" height="40" viewBox="0 0 24 24" style="color:#444;">
+        <path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/>
+    </svg>';
+    $output .= '</div>';
 
-        // Organizer Text
-        $output .= '<div class="event-organizer-text" style="flex:1;">';
-        $output .= '<strong>Organizer: </strong>' . esc_html($organizer_name);
-        if ($organizer_email) {
-            $output .= '<br><strong>Email: </strong><a href="mailto:' . esc_attr($organizer_email) . '">' . esc_html($organizer_email) . '</a>';
-        }
-        $output .= '</div>'; // close organizer text
+    // Organizer Text
+    $output .= '<div class="event-organizer-text" style="flex:1;">';
+    $output .= '<strong>Organizer: </strong>' . esc_html($organizer_name);
+    if ($organizer_email) {
+        $output .= '<br><strong>Email: </strong><a href="mailto:' . esc_attr($organizer_email) . '">' . esc_html($organizer_email) . '</a>';
+    }
+    $output .= '</div>'; // close organizer text
 
     $output .= '</div>'; // close organizer card
     
     // Empty Container with two subcontainers side by side, transparent background
     $output .= '<div class="event-dashboard-empty" style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:15px; padding:15px; border-radius:20px; background:transparent;">';
 
-        // Left Subcontainer with Edit Details button, left-aligned
-        $output .= '<div class="empty-left" style="flex:1; min-width:150px; padding:10px; border-radius:10px; background:transparent; display:flex; justify-content:flex-start; align-items:center;">
-            <a href="' . esc_url(home_url('/create-event/' . $slug)) . '" 
-                style="
-                    display:inline-block; 
-                    padding:12px 25px; 
-                    border-radius:30px; 
-                    background:linear-gradient(135deg, rgb(125,63,255) 0%, rgb(255,75,43) 100%); 
-                    font-family:Inter, sans-serif; 
-                    font-weight:500; 
-                    font-size:16px; 
-                    color:#fff; 
-                    text-decoration:none; 
-                    text-align:center; 
-                    box-shadow:0 2px 6px rgba(0,0,0,0.2); 
-                    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                               box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                               color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
- 
-                "
-                onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px rgba(240,123,177,0.6)\'; this.style.color=\'#F07BB1\';" 
-                onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
-            >
-                Edit Details
-            </a>
-        </div>';
-
-        // Right Subcontainer with Share Event button, right-aligned
-        $output .= '<div class="empty-right" style="flex:1; min-width:150px; padding:10px; border-radius:10px; background:transparent; display:flex; justify-content:flex-end; align-items:center;">
-            <a href="#" 
-                class="share-event-btn"
-                data-link="' . esc_url(home_url('/event-page/' . $slug)) . '"
-                style="
-                    display:inline-block; 
-                    padding:12px 25px; 
-                    border-radius:30px; 
-                    background:linear-gradient(135deg, rgb(125,63,255) 0%, rgb(255,75,43) 100%); 
-                    font-family:Inter, sans-serif; 
-                    font-weight:500; 
-                    font-size:16px; 
-                    color:#fff; 
-                    text-decoration:none; 
-                    text-align:center; 
-                    box-shadow:0 2px 6px rgba(0,0,0,0.2); 
-                    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                                color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                "
-                onclick="event.preventDefault(); 
-                        navigator.clipboard.writeText(this.getAttribute(\'data-link\')).then(() => { 
-                            alert(\'Event link copied to clipboard!\'); 
-                        });"
-                onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px rgba(240,123,177,0.6)\'; this.style.color=\'#F07BB1\';"
-                onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
-            >
-                Share Event
-            </a>
-        </div>';
-
-    $output .= '</div>'; // close transparent container
-
-    // -------------------------------
-    // Cancel Event Container
-    // -------------------------------
-    $output .= '<div class="event-cancel-card" style="padding:15px; border:1px solid #ddd; border-radius:20px; margin-bottom:15px; background:#fff; text-align:center;">';
-
-        // Description above button
-        $output .= '<div style="font-size:14px; color:#666; margin-bottom:10px;">
-            Canceling this event will notify all registered attendees and remove it from the public calendar. This action cannot be undone.
-        </div>';
-
-        // Cancel Button
-        $output .= '<a href="' . esc_url(add_query_arg('cancel_event', '1')) . '" 
+    // Left Subcontainer with Edit Details button, left-aligned
+    $output .= '<div class="empty-left" style="flex:1; min-width:150px; padding:10px; border-radius:10px; background:transparent; display:flex; justify-content:flex-start; align-items:center;">
+        <a href="' . esc_url(home_url('/create-event/' . $slug)) . '" 
             style="
                 display:inline-block; 
                 padding:12px 25px; 
@@ -339,20 +321,91 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
                 text-align:center; 
                 box-shadow:0 2px 6px rgba(0,0,0,0.2); 
                 transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                            box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                            color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                                color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
             "
+            onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px rgba(240,123,177,0.6)\'; this.style.color=\'#F07BB1\';" 
+            onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
+        >
+            Edit Details
+        </a>
+    </div>';
+
+    // Right Subcontainer with Share Event button, right-aligned
+    $output .= '<div class="empty-right" style="flex:1; min-width:150px; padding:10px; border-radius:10px; background:transparent; display:flex; justify-content:flex-end; align-items:center;">
+        <a href="#" 
+            class="share-event-btn"
+            data-link="' . esc_url(home_url('/event-page/' . $slug)) . '"
+            style="
+                display:inline-block; 
+                padding:12px 25px; 
+                border-radius:30px; 
+                background:linear-gradient(135deg, rgb(125,63,255) 0%, rgb(255,75,43) 100%); 
+                font-family:Inter, sans-serif; 
+                font-weight:500; 
+                font-size:16px; 
+                color:#fff; 
+                text-decoration:none; 
+                text-align:center; 
+                box-shadow:0 2px 6px rgba(0,0,0,0.2); 
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                                color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            "
+            onclick="event.preventDefault(); 
+                        navigator.clipboard.writeText(this.getAttribute(\'data-link\')).then(() => { 
+                            alert(\'Event link copied to clipboard!\'); 
+                        });"
             onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px rgba(240,123,177,0.6)\'; this.style.color=\'#F07BB1\';"
             onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
-            onclick="return confirm(\'Are you sure you want to cancel this event? This cannot be undone.\');"
         >
-            Cancel Event
-        </a>';
+            Share Event
+        </a>
+    </div>';
+
+    $output .= '</div>'; // close transparent container
+
+    // -------------------------------
+    // Cancel Event Container
+    // -------------------------------
+    $output .= '<div class="event-cancel-card" style="padding:15px; border:1px solid #ddd; border-radius:20px; margin-bottom:15px; background:#fff; text-align:center;">';
+
+    // Description above button
+    $output .= '<div style="font-size:14px; color:#666; margin-bottom:10px;">
+        Canceling this event will notify all registered attendees and remove it from the public calendar. This action cannot be undone.
+    </div>';
+
+    // Cancel Button
+    $output .= '<a href="' . esc_url(add_query_arg('cancel_event', '1')) . '" 
+        style="
+            display:inline-block; 
+            padding:12px 25px; 
+            border-radius:30px; 
+            background:linear-gradient(135deg, rgb(125,63,255) 0%, rgb(255,75,43) 100%); 
+            font-family:Inter, sans-serif; 
+            font-weight:500; 
+            font-size:16px; 
+            color:#fff; 
+            text-decoration:none; 
+            text-align:center; 
+            box-shadow:0 2px 6px rgba(0,0,0,0.2); 
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                            box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                            color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        "
+        onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 4px 15px rgba(240,123,177,0.6)\'; this.style.color=\'#F07BB1\';"
+        onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 2px 6px rgba(0,0,0,0.2)\'; this.style.color=\'#fff\';"
+        onclick="return confirm(\'Are you sure you want to cancel this event? This cannot be undone.\');"
+    >
+        Cancel Event
+    </a>';
 
     $output .= '</div>'; // close cancel card
 
     $output .= '</div>'; // close overview container
 
+    // Return the final HTML output.
     return $output;
 }
 add_shortcode('event-dashboard-overview-tab', 'conbook_event_dashboard_overview_tab_shortcode');
