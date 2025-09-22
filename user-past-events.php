@@ -1,18 +1,8 @@
 <?php
-/**
- * Renders a list of a user's past events.
- *
- * This shortcode generates an HTML grid of events that have already ended and
- * were created by the currently logged-in user. It first verifies if a user
- * is logged in. If not, it returns a login prompt. For a logged-in user, it
- * queries for 'event' posts authored by them where the `_end_datetime`
- * is in the past. The events are then displayed as clickable cards with a
- * title, end date, and an "EXPIRED" badge.
- *
- * @param array $atts Shortcode attributes. Not currently used, but included for standard shortcode hook.
- *
- * @return string The HTML output for the grid of past events, or a login/no-events message.
- */
+// -------------------------------
+// Shortcode: [user-past-events]
+// Displays all past events for the logged-in user
+// -------------------------------
 function conbook_user_past_events_shortcode($atts) {
     if (!is_user_logged_in()) {
         return '<p>Please log in to view your past events.</p>';
