@@ -1,12 +1,32 @@
 <?php
-// -------------------------------
-// Shortcode: [event-dashboard]
-// Displays a custom event dashboard with centered clickable tabs (no background)
-// Restricted so only the event's author can see it
-// -------------------------------
+/**
+ * Shortcode Handler for the Main Event Dashboard.
+ *
+ * Registers the `event-dashboard` shortcode. This is the main controller for the event
+ * management interface. It's responsible for displaying a tabbed dashboard that
+ * includes an overview, guest list, registrations, and insights. The function first
+ * verifies that the current user is the author of the event, restricting access to
+ * unauthorized users.
+ *
+ * The shortcode renders the HTML structure for the tabs and content panes, and then
+ * dynamically loads content into each tab by calling other specialized shortcodes
+ * (e.g., `[event-dashboard-overview-tab]`). An inline JavaScript snippet handles the
+ * front-end logic for switching between the different tabs.
+ *
+ * Usage: `[event-dashboard]`
+ *
+ * @param array $atts Shortcode attributes (not currently used).
+ * @return string The complete HTML output for the event dashboard.
+ */
 function conbook_event_dashboard_shortcode($atts) {
 
-    // Get the event slug from the URL
+    /**
+     * Section: Event Data Retrieval and Access Control
+     *
+     * Fetches the event slug from the URL and retrieves the event post object. It then
+     * performs a crucial security check to ensure that only the event's author can view
+     * the dashboard, returning an error message for all other users.
+     */
     $slug = sanitize_text_field(get_query_var('event_slug', ''));
     if (!$slug) return '';
 
@@ -27,7 +47,14 @@ function conbook_event_dashboard_shortcode($atts) {
         return 'You are not allowed to view this dashboard.';
     }
 
-    // Start output buffering
+    /**
+     * Section: HTML Output Generation
+     *
+     * Starts an output buffer to capture all subsequent HTML. This section defines the
+     * main structure of the dashboard, including a container card, the tab navigation
+     * (`<ul class="dashboard-tabs">`), and the content areas for each tab (`<div class="tab-pane">`).
+     * It uses `do_shortcode()` to embed the content from the specific tab shortcodes.
+     */
     ob_start();
     ?>
     <div class="event-dashboard" style="padding:20px;">
@@ -66,7 +93,11 @@ function conbook_event_dashboard_shortcode($atts) {
                 <div class="tab-pane" id="insights" style="display:none;">Insights content goes here.</div>
             </div>
 
-            <!-- Simple JS for Tab Switching -->
+            <!-- Section: JavaScript for Tab Switching
+            
+             A simple inline JavaScript snippet that handles the client-side interactivity of
+             the tabs. When a user clicks a tab, it toggles the "active" class and displays
+             the corresponding content pane while hiding all others. -->
             <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const tabs = document.querySelectorAll('.dashboard-tabs .tab');
