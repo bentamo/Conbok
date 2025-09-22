@@ -1,9 +1,14 @@
 <?php
 /**
- * Plugin Name: Event Tables
- * Description: Creates event-related tables (tickets, payment methods, registrations) on activation.
- * Version: 1.0
- * Author: Rae
+ * Creates the custom database tables for the plugin.
+ *
+ * This function is hooked to the `register_activation_hook` and runs when the plugin is
+ * activated. It uses WordPress's `dbDelta` function to safely create or update the
+ * necessary tables for event management, including `event_tickets`,
+ * `event_payment_methods`, `event_registrations`, and `event_guests`. This
+ * ensures the database schema is correctly set up without losing data on updates.
+ *
+ * The tables are prefixed with the WordPress database prefix to avoid conflicts.
  */
 
 function event_tables_create() {
@@ -11,13 +16,25 @@ function event_tables_create() {
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     $charset_collate = $wpdb->get_charset_collate();
 
-    // Table names
+    /**
+     * Section: Table Name Definitions
+     *
+     * Defines the full table names by prepending the WordPress database prefix. This is a
+     * best practice to ensure table names are unique and compatible with different WordPress
+     * installations.
+     */
     $table_tickets       = $wpdb->prefix . 'event_tickets';
     $table_payments      = $wpdb->prefix . 'event_payment_methods';
     $table_registrations = $wpdb->prefix . 'event_registrations';
     $table_guests        = $wpdb->prefix . 'event_guests';
 
-    // Event Tickets
+    /**
+     * Section: Table Name Definitions
+     *
+     * Defines the full table names by prepending the WordPress database prefix. This is a
+     * best practice to ensure table names are unique and compatible with different WordPress
+     * installations.
+     */
     $sql_tickets = "CREATE TABLE $table_tickets (
         id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
         event_id BIGINT(20) UNSIGNED NOT NULL,
@@ -72,7 +89,13 @@ function event_tables_create() {
         KEY idx_status (status)
     ) $charset_collate;";
 
-    // Run dbDelta (safe create/update)
+    /**
+     * Section: Execute Table Creation
+     *
+     * Executes the `dbDelta` function for each table. This function intelligently compares the
+     * desired schema with the current database structure and makes the necessary additions,
+     * changes, or removals, without deleting existing data.
+     */
     dbDelta($sql_tickets);
     dbDelta($sql_payments);
     dbDelta($sql_registrations);
