@@ -1,8 +1,21 @@
 <?php
+/**
+ * Shortcode handler for the event registration form.
+ *
+ * This function retrieves event details, tickets, and payment methods based on the
+ * `event_slug` from the URL. It handles the form submission, including security
+ * checks, file uploads for proof of payment, and inserts a new registration record
+ * into the custom `event_registrations` database table. It also prevents duplicate
+ * registrations and provides a dynamic frontend form with styling.
+ *
+ * @return string The HTML output for the registration form or a JavaScript redirect.
+ */
 function event_registration() {
     global $wpdb;
 
-    // Default values
+    // Section: Initialization and Data Retrieval
+    // Initializes variables and retrieves necessary event, ticket, and payment data from the database
+    // based on the URL's event slug.
     $event_title     = 'Event';
     $post_id         = 0;
     $user_id         = 0;
@@ -21,7 +34,7 @@ function event_registration() {
     $event_title = $event->post_title;
     $user_id     = intval($event->post_author); // Event creator ID
 
-    // Retrieve tickets from event_tickets table
+    // Retrieve tickets from the custom `event_tickets` table
     $tickets = $wpdb->get_results(
         $wpdb->prepare("SELECT id, name, price FROM {$wpdb->prefix}event_tickets WHERE event_id = %d", $post_id),
         ARRAY_A
@@ -32,7 +45,7 @@ function event_registration() {
         }
     }
 
-    // Retrieve payment methods from event_payment_methods table
+    // Retrieve payment methods from the custom `event_payment_methods` table
     $payments = $wpdb->get_results(
         $wpdb->prepare("SELECT id, name, details FROM {$wpdb->prefix}event_payment_methods WHERE event_id = %d", $post_id),
         ARRAY_A
@@ -54,7 +67,8 @@ function event_registration() {
     $email        = $current_user->user_email ?? '';
     $contact      = get_user_meta($current_user->ID, 'contact-number-textbox', true) ?? '';
 
-    // Handle form submission
+    // Section: Form Submission Handling
+    // Processes the form submission when the user registers for the event.
     if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
         isset($_POST['event_registration_nonce']) &&
         wp_verify_nonce($_POST['event_registration_nonce'], 'event_registration')) {
@@ -64,7 +78,7 @@ function event_registration() {
         $payment_method_id = intval($_POST['payment_method_id']);
         $proof_id          = 0;
 
-        // Handle file upload securely
+        // Handle file upload for proof of payment
         if (!empty($_FILES['proof_of_payment']['name'])) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
             require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -86,7 +100,7 @@ function event_registration() {
         $current_user_id = get_current_user_id();
         $user_email = $current_user->user_email;
 
-        // Check if user already registered
+        // Prevent duplicate registration for the same event and user/email.
         $existing_registration = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT COUNT(*) FROM {$wpdb->prefix}event_registrations WHERE event_id = %d AND user_id = %d",
@@ -112,7 +126,7 @@ function event_registration() {
         }
 
 
-        // Insert registration into custom table
+        // Insert the new registration record into the `event_registrations` table.
         $table = $wpdb->prefix . 'event_registrations';
         $wpdb->insert($table, [
             'user_id'           => get_current_user_id(),
@@ -132,7 +146,9 @@ function event_registration() {
                 </script>';
     }
 
-    // Display registration form
+    // Section: Frontend Form Display
+    // This section generates the HTML for the registration form, including the form fields,
+    // styling, and a JavaScript snippet for dynamic UI updates.
     ob_start(); ?>
     <style>
         /* Glassmorphic form container */
@@ -296,4 +312,5 @@ function event_registration() {
     <?php
     return ob_get_clean();
 }
+// Registers the function as a shortcode, allowing it to be used in pages with [form-event-registration].
 add_shortcode('form-event-registration', 'event_registration');
