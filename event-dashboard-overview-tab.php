@@ -1,9 +1,29 @@
 <?php
-// Shortcode: [event-dashboard-overview-tab]
+/**
+ * Shortcode Handler for the Event Dashboard Overview Tab.
+ *
+ * Registers the `event-dashboard-overview-tab` shortcode. This function is responsible for
+ * displaying a comprehensive overview of a specific event within the dashboard. It fetches
+ * event details, including title, date, time, location, tickets, payments, and organizer
+ * information. It also includes the logic for permanently canceling an event and provides
+ * "Edit Details" and "Share Event" buttons.
+ *
+ * The shortcode handles event deletion by removing the post, featured image, and all
+ * related data from custom database tables, ensuring a clean and complete removal.
+ *
+ * @param array $atts Shortcode attributes (not currently used).
+ * @return string The complete HTML output for the event overview.
+ */
 function conbook_event_dashboard_overview_tab_shortcode($atts) {
     global $wpdb;
 
-    // Get the event slug from the URL
+    /**
+     * Section: Event Data Retrieval
+     *
+     * Fetches the event slug from the URL query variable. It then uses the slug to
+     * retrieve the corresponding event post object. The function returns early if
+     * no valid slug or event is found.
+     */
     $slug = sanitize_text_field(get_query_var('event_slug', ''));
     if (!$slug) return '';
 
@@ -13,9 +33,15 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
 
     $post_id = $event->ID;
 
-    // -------------------------------
-    // Cancel Event logic
-    // -------------------------------
+    /**
+     * Section: Event Cancellation Logic
+     *
+     * This section handles the permanent cancellation and deletion of an event.
+     * When the `cancel_event` URL parameter is present, it performs a cascade
+     * delete operation: removing the featured image, any associated proofs of
+     * payment, all guest registrations from the custom database tables, and finally,
+     * the event post itself. It then redirects the user to the events list.
+     */
     if (isset($_GET['cancel_event']) && $_GET['cancel_event'] == 1) {
         // Delete featured image if exists
         $thumb_id = get_post_thumbnail_id($post_id);
@@ -59,7 +85,13 @@ function conbook_event_dashboard_overview_tab_shortcode($atts) {
         exit;
     }
 
-    // Start output
+    /**
+     * Section: HTML Output Generation
+     *
+     * Starts building the HTML output string for the event overview. Each part of the
+     * event data (title, date, time, location, etc.) is formatted into distinct,
+     * stylized cards for a clean and readable layout.
+     */
     $output = '<div class="event-dashboard-overview" style="padding-left:20px; padding-right:20px;">';
 
     // Event Title
