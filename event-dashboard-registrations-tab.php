@@ -1,8 +1,31 @@
 <?php
+/**
+ * Shortcode Handler for the Event Dashboard Registrations Tab.
+ *
+ * Registers the `event-dashboard-registrations-tab` shortcode. This function is
+ * responsible for querying and displaying a list of all registrations for a specific
+ * event. It fetches user and ticket information from custom database tables and
+ * user meta, then renders an HTML table. The table includes fields for the
+ * registrant's name, email, chosen ticket, proof of payment, and a dropdown to
+ * update their status (e.g., Pending, Accepted, Declined).
+ *
+ * An inline script is enqueued to handle AJAX updates, which allows the event
+ * organizer to manage registration statuses in real-time without a page reload.
+ *
+ * Usage: `[event-dashboard-registrations-tab]`
+ *
+ * @return string The complete HTML output of the registrations table.
+ */
 function conbook_event_dashboard_registrations_tab_shortcode() {
     global $wpdb;
 
-    // Get the event slug from the URL
+    /**
+     * Section: Event Data Retrieval
+     *
+     * Fetches the event slug from the URL query variable and retrieves the corresponding
+     * event post object. The function returns an empty string if no valid slug or event
+     * is found, preventing errors.
+     */
     $slug = sanitize_text_field(get_query_var('event_slug', ''));
     if (!$slug) return '';
 
@@ -12,6 +35,12 @@ function conbook_event_dashboard_registrations_tab_shortcode() {
 
     $post_id = $event->ID;
 
+    /**
+     * Section: Database Query
+     *
+     * Queries the `event_registrations` table to get a list of all registrations
+     * for the current event, ordered from newest to oldest.
+     */
     $table_reg = $wpdb->prefix . 'event_registrations';
     $table_tickets = $wpdb->prefix . 'event_tickets';
 
@@ -21,9 +50,20 @@ function conbook_event_dashboard_registrations_tab_shortcode() {
         $post_id
     ));
 
-    // Nonce for AJAX security
+    /**
+     * Section: Security Nonce
+     *
+     * Creates a unique security nonce for AJAX requests. This is a crucial security
+     * measure to protect against CSRF (Cross-Site Request Forgery) attacks.
+     */
     $ajax_nonce = wp_create_nonce('update_registration_status_nonce');
 
+    /**
+     * Section: Security Nonce
+     *
+     * Creates a unique security nonce for AJAX requests. This is a crucial security
+     * measure to protect against CSRF (Cross-Site Request Forgery) attacks.
+     */
     ob_start(); ?>
     <div class="event-dashboard-registrations-tab">
         <table class="event-registrations-table" border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse;">
@@ -102,6 +142,12 @@ function conbook_event_dashboard_registrations_tab_shortcode() {
         </table>
     </div>
 
+    <!-- Section: JavaScript for AJAX Updates
+
+     This inline script uses jQuery to listen for changes on the registration status
+     dropdown. When a change occurs, it sends an AJAX request to the server with
+     the registration ID, new status, and security nonce, enabling real-time
+     updates without a page reload. -->
     <script type="text/javascript">
         jQuery(document).ready(function($) {
             $('.registration-status-dropdown').on('change', function() {
@@ -134,7 +180,16 @@ function conbook_event_dashboard_registrations_tab_shortcode() {
 }
 add_shortcode('event-dashboard-registrations-tab', 'conbook_event_dashboard_registrations_tab_shortcode');
 
-// AJAX handler
+/**
+ * Section: AJAX Request Handler
+ *
+ * Registers a new AJAX handler (`conbook_update_registration_status`) for logged-in
+ * users. This function receives the `registration_id` and `new_status` from the
+ * front-end AJAX call, validates the request, and updates the registration's
+ * status in the database. If the new status is 'accepted', it also creates a
+ * new entry in the `event_guests` table. It returns a JSON success or error
+ * message to the client.
+ */
 function conbook_update_registration_status() {
     global $wpdb;
 
