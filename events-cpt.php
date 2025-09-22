@@ -6,9 +6,14 @@
  * Author: Rae
  */
 
-// -------------------------------
-// 1. Register Events CPT
-// -------------------------------
+/**
+ * Registers the 'Event' custom post type.
+ *
+ * This function defines a new custom post type for events, specifying its labels,
+ * public accessibility, archive support, menu icon, and supported features like
+ * title, content, and featured images. It is hooked into the `init` action to
+ * ensure it's loaded early in the WordPress lifecycle.
+ */
 function events_cpt_register() {
     $args = [
         'labels' => [
@@ -30,9 +35,15 @@ add_action('init', 'events_cpt_register');
 // -------------------------------
 require_once __DIR__ . '/create-event.php';
 
-// -------------------------------
-// 3. Handle Frontend Form Submission
-// -------------------------------
+/**
+ * Handles the frontend event creation/editing form submission.
+ *
+ * This function is hooked to both `admin_post_conbook_create_event` and `admin_post_nopriv_conbook_create_event`,
+ * allowing both logged-in and non-logged-in users (though restricted) to post to the form.
+ * It performs security checks (nonce and user authentication), sanitizes all input fields,
+ * and handles the creation or updating of an event post, its metadata, featured image,
+ * and associated tickets and payment methods in the custom database tables.
+ */
 function conbook_handle_create_event() {
     if (!isset($_POST['conbook_create_event_nonce_field']) || 
         !wp_verify_nonce($_POST['conbook_create_event_nonce_field'], 'conbook_create_event_nonce')) {
@@ -56,9 +67,15 @@ function conbook_handle_create_event() {
     $end_time    = sanitize_text_field($_POST['end-time']);
     $event_id    = isset($_POST['event_id']) ? intval($_POST['event_id']) : 0;
 
-    // -------------------------------
-    // 1. Generate a unique slug for new events
-    // -------------------------------
+    /**
+     * Generates a unique, random string for event slugs.
+     *
+     * This helper function creates a randomized string to ensure that event slugs are unique
+     * and not easily guessable, especially for new events.
+     *
+     * @param int $length The desired length of the random string.
+     * @return string The generated random string.
+     */
     function conbook_generate_random_string($length = 8) {
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $string = '';
@@ -92,9 +109,14 @@ function conbook_handle_create_event() {
         }
     }
 
-    // -------------------------------
-    // 2. Insert or update event
-    // -------------------------------
+    /**
+     * Section: Insert or Update Event Post
+     *
+     * This section handles the core post creation logic. If an `event_id` is present, it
+     * updates an existing event, including a critical security check to verify the user's
+     * permissions. If no `event_id` is provided, it creates a new event post with a
+     * unique, randomly generated slug.
+     */
     if ($event_id) {
         // Update existing event
         $update_result = wp_update_post([
@@ -121,9 +143,13 @@ function conbook_handle_create_event() {
         }
     }
 
-    // -------------------------------
-    // 3. Update event meta fields
-    // -------------------------------
+    /**
+     * Section: Update Event Meta Fields
+     *
+     * Updates all custom metadata fields associated with the event post, such as
+     * location, start/end dates, and times. It also creates combined datetime fields
+     * for easier sorting and querying.
+     */
     update_post_meta($event_id, '_location', $location);
     update_post_meta($event_id, '_start_date', $start_date);
     update_post_meta($event_id, '_end_date', $end_date);
@@ -135,9 +161,13 @@ function conbook_handle_create_event() {
     update_post_meta($event_id, '_start_datetime', $start_datetime);
     update_post_meta($event_id, '_end_datetime', $end_datetime);
 
-    // -------------------------------
-    // 4. Handle featured image
-    // -------------------------------
+    /**
+     * Section: Handle Featured Image
+     *
+     * Checks for a new image upload and, if one exists, handles the media upload process
+     * and sets the uploaded image as the event's featured image. It includes necessary
+     * WordPress core files for media handling.
+     */
     if (!empty($_FILES['event_image']['name'])) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         require_once(ABSPATH . 'wp-admin/includes/media.php');
@@ -149,9 +179,14 @@ function conbook_handle_create_event() {
         }
     }
 
-    // -------------------------------
-    // 5. Remove old tickets & payments
-    // -------------------------------
+    /**
+     * Section: Update Custom Database Tables (Tickets & Payments)
+     *
+     * Handles the logic for managing tickets and payment methods. For existing events, it
+     * first deletes all old entries to prevent duplicates and data inconsistencies. It then
+     * iterates through the submitted form data to insert new or updated ticket and payment
+     * method information into the custom tables.
+     */
     if ($event_id) {
         $wpdb->delete($table_tickets, ['event_id' => $event_id]);
         $wpdb->delete($table_payments, ['event_id' => $event_id]);
@@ -198,9 +233,15 @@ function conbook_handle_create_event() {
 add_action('admin_post_conbook_create_event', 'conbook_handle_create_event');
 add_action('admin_post_nopriv_conbook_create_event', 'conbook_handle_create_event');
 
-// -------------------------------
-// 4. Delete Event Featured Image on Permanent Delete
-// -------------------------------
+/**
+ * Deletes the featured image when an event post is permanently deleted.
+ *
+ * This function prevents orphaned media files in the WordPress library by
+ * automatically deleting the featured image when its associated event post
+ * is permanently removed from the database. It is hooked to `before_delete_post`.
+ *
+ * @param int $post_id The ID of the post being deleted.
+ */
 function conbook_delete_event_image($post_id) {
     if (get_post_type($post_id) !== 'event') {
         return;
@@ -213,9 +254,12 @@ function conbook_delete_event_image($post_id) {
 }
 add_action('before_delete_post', 'conbook_delete_event_image');
 
-// -------------------------------
-// 5. Admin Meta Box for Event Details (Tickets + Registrants)
-// -------------------------------
+/**
+ * Adds a custom meta box to the 'event' post type in the admin area.
+ *
+ * This meta box provides a centralized location for managing event-specific details
+ * such as dates, times, location, tickets, payments, and a list of registrants.
+ */
 function conbook_add_event_metaboxes() {
     add_meta_box(
         'conbook_event_details',
@@ -228,6 +272,15 @@ function conbook_add_event_metaboxes() {
 }
 add_action('add_meta_boxes', 'conbook_add_event_metaboxes');
 
+/**
+ * Renders the content of the custom event details meta box.
+ *
+ * This function generates the HTML for the meta box, displaying the event's metadata
+ * in form fields and presenting existing tickets, payments, and registrant lists in
+ * tables. It uses dynamic JavaScript to allow for adding new rows on the fly.
+ *
+ * @param WP_Post $post The current post object.
+ */
 function conbook_render_event_metabox($post) {
     global $wpdb;
     wp_nonce_field('conbook_save_event_meta', 'conbook_event_meta_nonce');
@@ -385,6 +438,16 @@ function conbook_render_event_metabox($post) {
     <?php
 }
 
+/**
+ * Saves the data submitted from the custom event meta box.
+ *
+ * This function is hooked to `save_post_event` and handles sanitization and storage
+ * of all fields from the meta box, including general event info and the dynamic
+ * tables for tickets, payments, and registrant statuses. It performs essential
+ * security checks to ensure data integrity.
+ *
+ * @param int $post_id The ID of the post being saved.
+ */
 function conbook_save_event_meta($post_id) {
     global $wpdb;
     if (!isset($_POST['conbook_event_meta_nonce']) ||
@@ -490,15 +553,30 @@ function conbook_save_event_meta($post_id) {
 }
 add_action('save_post_event', 'conbook_save_event_meta');
 
-// -------------------------------
-// 6. Add Event Author Column in Admin List
-// -------------------------------
+/**
+ * Adds a custom 'Created By' column to the Events post list in the admin.
+ *
+ * This filter hooks into `manage_event_posts_columns` to add a new column for
+ * the event's author, making it easier for administrators to see who created each event.
+ *
+ * @param array $columns The existing columns.
+ * @return array The modified array of columns.
+ */
 function conbook_add_event_author_column($columns) {
     $columns['event_author'] = 'Created By';
     return $columns;
 }
 add_filter('manage_event_posts_columns', 'conbook_add_event_author_column');
 
+/**
+ * Renders the content for the custom 'Created By' column.
+ *
+ * This action hooks into `manage_event_posts_custom_column` to display the
+ * event author's name in the newly created column.
+ *
+ * @param string $column The name of the column.
+ * @param int $post_id The ID of the current post.
+ */
 function conbook_render_event_author_column($column, $post_id) {
     if ($column === 'event_author') {
         $author_id = get_post_field('post_author', $post_id);
@@ -508,15 +586,30 @@ function conbook_render_event_author_column($column, $post_id) {
 }
 add_action('manage_event_posts_custom_column', 'conbook_render_event_author_column', 10, 2);
 
-// -------------------------------
-// 7. Add Registrants Column in Admin List
-// -------------------------------
+/**
+ * Adds a 'Registrants' count column to the Events post list in the admin.
+ *
+ * This provides a quick overview of how many users have registered for each event
+ * directly from the main post list.
+ *
+ * @param array $columns The existing columns.
+ * @return array The modified array of columns.
+ */
 function conbook_add_event_registrants_column($columns) {
     $columns['event_registrants'] = 'Registrants';
     return $columns;
 }
 add_filter('manage_event_posts_columns', 'conbook_add_event_registrants_column');
 
+/**
+ * Renders the content for the custom 'Registrants' column.
+ *
+ * This function retrieves and displays the total number of registrants for each event,
+ * with a link to a filtered view if there are any registrations.
+ *
+ * @param string $column The name of the column.
+ * @param int $post_id The ID of the current post.
+ */
 function conbook_render_event_registrants_column($column, $post_id) {
     if ($column === 'event_registrants') {
         global $wpdb;
@@ -537,10 +630,14 @@ function conbook_render_event_registrants_column($column, $post_id) {
 }
 add_action('manage_event_posts_custom_column', 'conbook_render_event_registrants_column', 10, 2);
 
-// -------------------------------
-// 8. Rewrite Rules for Event Page (pretty URLs)
-// -------------------------------
-
+/**
+ * Section: Custom URL Rewrite Rules
+ *
+ * This section defines a series of rewrite rules to create clean, "pretty" URLs
+ * for various event-related pages like the public event page, event dashboard,
+ * event creation form, and registration pages. It maps user-friendly slugs to
+ * the correct internal WordPress pages and query variables.
+ */
 add_action('init', function() {
     add_rewrite_rule(
         '^event-page/([^/]+)/?$',
@@ -573,6 +670,16 @@ add_action('init', function() {
     );
 });
 
+/**
+ * Allows the 'event_slug' query variable to be used by WordPress.
+ *
+ * This filter adds `event_slug` to the list of public query variables, which is
+ * essential for our rewrite rules to function and for WordPress to correctly
+ * identify the event being requested from the URL.
+ *
+ * @param array $vars The existing array of query variables.
+ * @return array The modified array with `event_slug` added.
+ */
 function conbook_event_query_vars($vars) {
     $vars[] = 'event_slug';
     return $vars;
