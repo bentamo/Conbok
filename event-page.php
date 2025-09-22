@@ -1,11 +1,32 @@
 <?php
-// -------------------------------
-// Shortcode: [event-page]
-// -------------------------------
+/**
+ * Shortcode Handler for the Event Public Page.
+ *
+ * Registers the `event-page` shortcode. This function is responsible for rendering the
+ * public-facing page for a single event. It dynamically retrieves and displays the
+ * event's details, including the featured image, title, date, time, location,
+ * available tickets, and payment methods.
+ *
+ * It includes logic to handle different user states:
+ * - **Event Author:** Sees a "Manage Event" button linking to their dashboard.
+ * - **Registered User:** Sees a "Cancel Registration" button and a popup with their QR code for entry.
+ * - **Non-registered User:** Sees a "Join Event" button.
+ * - **Past Event:** Displays an "Event Ended" button.
+ * - **Guest User (Not Logged In):** Sees a "Join Event" button and a call-to-action popup to register.
+ *
+ * @param array $atts Shortcode attributes (not currently used).
+ * @return string The complete HTML output for the event page.
+ */
 function conbook_event_page_shortcode($atts) {
     global $wpdb;
 
-    // Add CSS inline once
+    /**
+     * Section: Inline CSS
+     *
+     * Defines inline CSS styles for the page, including "glassmorphism" effects,
+     * button styles, and a slide-in animation for popups. This ensures the styling is
+     * self-contained within the shortcode's output.
+     */
     $css = '
     <style>
     /* Shared Glass Base */
@@ -35,7 +56,12 @@ function conbook_event_page_shortcode($atts) {
     </style>
     ';
 
-    // Get the event slug from the URL
+    /**
+     * Section: Event Data Retrieval
+     *
+     * Fetches the event slug from the URL and retrieves the corresponding event post object.
+     * Returns an empty string if the event is not found.
+     */
     $slug = sanitize_text_field(get_query_var('event_slug', ''));
     if (!$slug) return '';
 
@@ -44,9 +70,13 @@ function conbook_event_page_shortcode($atts) {
     if (!$event) return '';
 
     $post_id = $event->ID;
-    // -------------------------------
-// Check if event has ended
-// -------------------------------
+    
+    /**
+     * Section: Event Status Check
+     *
+     * Compares the event's end date with the current time to determine if the event has
+     * already concluded. This flag is used later to customize the call-to-action button.
+     */
     $end_datetime   = get_post_meta($post_id, '_end_datetime', true);
     $now            = current_time('Y-m-d H:i:s');
 
@@ -56,7 +86,13 @@ function conbook_event_page_shortcode($atts) {
     }
 
     
-    // Start building output with CSS
+    /**
+     * Section: HTML Output and Content
+     *
+     * Generates the HTML structure for the event page, including the main layout, back button,
+     * event image, and detail cards for date, location, tickets, payments, and the organizer.
+     * The content is built dynamically using post meta and custom database tables.
+     */
     $output  = $css;
     $output .= '<div class="event-details" 
         style="display:flex; gap:20px; flex-wrap:wrap; align-items:center;">';
@@ -265,9 +301,17 @@ function conbook_event_page_shortcode($atts) {
     }
     $output .= '</div></div>';
 
+
     $current_user_id = get_current_user_id();
     $author_id = intval($event->post_author);
 
+    /**
+     * Section: Dynamic Call-to-Action Button Logic
+     *
+     * Determines the appropriate action button to display based on the user's role and
+     * registration status. It checks if the user is the event organizer, a registered
+     * attendee, or an unregistered guest. It also handles logic for past events.
+     */
     if ($current_user_id === $author_id) {
         // Organizer always sees Manage Event
         $button_text  = 'Manage Event';
@@ -292,6 +336,7 @@ function conbook_event_page_shortcode($atts) {
             ARRAY_A
         );
 
+        // Check if the user is a registered attendee
         if ($registration) {
             switch ($registration['status']) {
                 case 'pending':
@@ -389,8 +434,13 @@ function conbook_event_page_shortcode($atts) {
     $output .= $description ?: '<p style="margin:0;">No description available.</p>';
     $output .= '</div>';
     
-    // Popup (Glass Modal Style)
-    if ( ! is_user_logged_in() ) {
+    /**
+     * Section: Registration Call-to-Action Popup
+     *
+     * This section renders a sticky popup for non-logged-in visitors, encouraging them
+     * to register. It uses the "glass-modal" style and a CSS animation for a modern look.
+     */
+    if ( !is_user_logged_in() ) {
         $register_url = home_url('/register/');
         $output .= '<div class="event-cta-popup glass-base glass-modal" style="
             position:fixed; bottom:20px; right:20px; z-index:9999;
@@ -420,16 +470,27 @@ function conbook_event_page_shortcode($atts) {
     return $output;
 }
 add_shortcode('event-page', 'conbook_event_page_shortcode');
-// -------------------------------
-// Register routes for event actions
-// -------------------------------
+
+/**
+ * Section: Custom URL Rewrite Rules
+ *
+ * This section defines custom URL rewrite rules to create clean, readable URLs for
+ * event actions like canceling or removing a registration. These rules map friendly
+ * URLs (`/event-registration/cancel/123`) to internal WordPress query variables.
+ */
 add_action('init', function() {
     add_rewrite_rule('^event-registration/cancel/([0-9]+)/?', 'index.php?event_action=cancel&registration_id=$matches[1]', 'top');
     add_rewrite_rule('^event-registration/remove/([0-9]+)/?', 'index.php?event_action=remove&registration_id=$matches[1]', 'top');
     add_rewrite_rule('^event-registration/([^/]+)/?', 'index.php?event_action=join&event_slug=$matches[1]', 'top');
 });
 
-// Allow custom query vars
+/**
+ * Section: Allow Custom Query Variables
+ *
+ * Adds our custom query variables (`event_action`, `registration_id`, `event_slug`)
+ * to the list of public query variables recognized by WordPress. This is necessary
+ * for the rewrite rules to function correctly.
+ */
 add_filter('query_vars', function($vars) {
     $vars[] = 'event_action';
     $vars[] = 'registration_id';
@@ -437,9 +498,13 @@ add_filter('query_vars', function($vars) {
     return $vars;
 });
 
-// -------------------------------
-// Handle cancel/remove/join logic
-// -------------------------------
+/**
+ * Section: Event Action Handler (Template Redirect)
+ *
+ * This function hooks into `template_redirect` to intercept and handle specific event
+ * actions from the custom rewrite rules. It processes user requests to cancel or
+ * remove a registration and then redirects them to the main event list page.
+ */
 add_action('template_redirect', function() {
     if (!is_user_logged_in()) {
         return;
