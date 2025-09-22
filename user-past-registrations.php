@@ -1,8 +1,15 @@
 <?php
-// -------------------------------
-// Shortcode: [user-past-registrations]
-// Displays all past event registrations for the logged-in user
-// -------------------------------
+/**
+ * Renders a list of a user's past event registrations.
+ *
+ * This shortcode displays an HTML grid of events that the logged-in user has
+ * registered for and have already ended. It queries the custom 'event_registrations'
+ * and WordPress 'posts' tables to retrieve relevant event data. The result
+ * is a list of clickable event cards, each showing a title, the end date,
+ * and an "EXPIRED" badge.
+ *
+ * @return string The HTML output for the grid of past registrations, or a message if none are found.
+ */
 function conbook_user_past_registrations_shortcode() {
 
     if (!is_user_logged_in()) {
