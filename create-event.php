@@ -1,7 +1,19 @@
 <?php
 /**
- * Create/Edit Event Page Shortcode
- * Usage: [create-event]
+ * Main Shortcode Handler for Event Creation and Editing.
+ *
+ * This function registers the `[create-event]` shortcode, which generates a comprehensive form for
+ * users to either create a new event or edit an existing one. It handles all the backend logic,
+ * including fetching event data, pre-filling form fields, and rendering the HTML form with
+ * dynamic data.
+ *
+ * The form includes fields for the event title, description, dates, times, location, featured
+ * image, and dynamic sections for adding multiple ticket types and payment methods. The shortcode
+ * also includes inline CSS for styling and JavaScript for front-end form interactions.
+ *
+ * @param array $atts Shortcode attributes (not currently used).
+ * @return string The complete HTML output of the event creation/editing form.
+ * @version 1.0.0
  */
 add_shortcode('create-event', function ($atts = []) {
     $uid = uniqid('event-');
@@ -9,7 +21,12 @@ add_shortcode('create-event', function ($atts = []) {
     // Get the event slug from the URL
     $slug = sanitize_text_field(get_query_var('event_slug', ''));
 
-    // If no slug is present, treat it as a "create new event" form
+    /**
+     * Section: Event Data Retrieval
+     *
+     * This section determines if the user is creating a new event or editing an existing one based on the URL slug.
+     * If a slug is present, it fetches the corresponding 'event' custom post type and its associated ID.
+     */
     $event   = $slug ? get_page_by_path($slug, OBJECT, 'event') : null;
     $post_id = $event ? $event->ID : 0;
 
@@ -17,11 +34,24 @@ add_shortcode('create-event', function ($atts = []) {
     if ($event) {
         $current_user_id = get_current_user_id();
         if ($event->post_author != $current_user_id && !current_user_can('manage_options')) {
+            /**
+             * Section: Access Control
+             *
+             * Restricts who can edit an event. Only the original post author or a user with 'manage_options'
+             * (typically an administrator) is allowed to access the form for editing. Unauthorized access
+             * results in a denial message.
+             */
             return '<p>You are not allowed to edit this event.</p>';
         }
     }
 
-    // Pre-fill values if editing
+    /**
+     * Section: Access Control
+     *
+     * Restricts who can edit an event. Only the original post author or a user with 'manage_options'
+     * (typically an administrator) is allowed to access the form for editing. Unauthorized access
+     * results in a denial message.
+     */
     $value_title       = $event ? esc_attr($event->post_title) : '';
     $value_description = $event ? esc_textarea($event->post_content) : '';
     $value_location    = $event ? esc_attr(get_post_meta($post_id, '_location', true)) : '';
@@ -30,10 +60,20 @@ add_shortcode('create-event', function ($atts = []) {
     $value_start_time  = $event ? esc_attr(get_post_meta($post_id, '_start_time', true)) : '';
     $value_end_time    = $event ? esc_attr(get_post_meta($post_id, '_end_time', true)) : '';
 
-    // Button text
+    /**
+     * Section: Dynamic UI Elements
+     *
+     * Sets the text for the submit button dynamically based on whether the form is for
+     * creating a new event or editing an existing one.
+     */
     $button_text = $event ? 'Edit Event' : 'Create Event';
 
-    // Tickets & Payments
+    /**
+     * Section: Dynamic UI Elements
+     *
+     * Sets the text for the submit button dynamically based on whether the form is for
+     * creating a new event or editing an existing one.
+     */
     global $wpdb;
     $table_tickets  = $wpdb->prefix . 'event_tickets';
     $table_payments = $wpdb->prefix . 'event_payment_methods';
@@ -45,6 +85,12 @@ add_shortcode('create-event', function ($atts = []) {
     $thumbnail_id  = $event ? get_post_thumbnail_id($event->ID) : 0;
     $thumbnail_url = $thumbnail_id ? wp_get_attachment_url($thumbnail_id) : '';
 
+    /**
+     * Section: HTML Output Buffer
+     *
+     * Starts an output buffer to capture all subsequent HTML and PHP output. This allows the function
+     * to return the entire form as a single string, which is the standard practice for shortcodes.
+     */
     ob_start(); ?>
 
     <div class="event-form-container">
@@ -180,6 +226,12 @@ add_shortcode('create-event', function ($atts = []) {
         </form>
     </div>
 
+    /**
+     * Section: HTML Output Buffer
+     *
+     * Starts an output buffer to capture all subsequent HTML and PHP output. This allows the function
+     * to return the entire form as a single string, which is the standard practice for shortcodes.
+     */
     <style>
     /* General */
     .event-form-container { margin: 2rem 0; }
@@ -300,11 +352,25 @@ add_shortcode('create-event', function ($atts = []) {
     }
     </style>
 
+    /**
+     * Section: Inline Scripts (JavaScript)
+     *
+     * Contains the client-side logic for the event form. This script handles dynamic
+     * interactions such as adding/removing ticket and payment fields, validating the form
+     * on submission to ensure required fields are filled, and managing the featured image
+     * preview and removal. The script is self-executing to encapsulate its scope.
+     */
     <script>
     (function(){
         const form = document.getElementById('<?php echo esc_js($uid); ?>-form');
         const root = document.getElementById('<?php echo esc_js($uid); ?>');
 
+        /**
+         * Subsection: Dynamic Ticket Fields
+         * Manages the "add" and "remove" functionality for ticket input fields, allowing users
+         * to define multiple ticket types with names, prices, and descriptions. It also
+         * includes logic to ensure at least one ticket is present before submission.
+         */
         /* ---------------- Tickets ---------------- */
         const ticketsList = root.querySelector('.tickets-list');
         const addTicketBtn = root.querySelector('.add-ticket-btn');
@@ -326,6 +392,11 @@ add_shortcode('create-event', function ($atts = []) {
         if (ticketIdx === 0) addTicket();
         addTicketBtn.addEventListener('click', addTicket);
 
+        /**
+         * Subsection: Dynamic Payment Fields
+         * Similar to the ticket section, this handles the dynamic addition and removal of
+         * payment method fields, ensuring at least one payment method is specified.
+         */
         /* ---------------- Payments ---------------- */
         const paymentsList = root.querySelector('.payments-list');
         const addPaymentBtn = root.querySelector('.add-payment-btn');
@@ -346,6 +417,11 @@ add_shortcode('create-event', function ($atts = []) {
         if (paymentIdx === 0) addPayment();
         addPaymentBtn.addEventListener('click', addPayment);
 
+        /**
+         * Subsection: Form Submission Validation
+         * Prevents the form from being submitted if there are no ticket or payment method fields
+         * present. It displays error messages to guide the user.
+         */
         /* ---------------- Form Validation ---------------- */
         form.addEventListener('submit', e => {
             let valid = true;
@@ -367,6 +443,11 @@ add_shortcode('create-event', function ($atts = []) {
             if (!valid) e.preventDefault();
         });
 
+        /**
+         * Subsection: Image Upload Preview
+         * Manages the functionality for the featured image upload, including showing a real-time
+         * preview of the selected image and a "remove" button to clear the selection.
+         */
         /* ---------------- Image Upload ---------------- */
         const imgSlot = form.querySelector('.image-slot');
         if (imgSlot){
@@ -397,6 +478,10 @@ add_shortcode('create-event', function ($atts = []) {
             });
         }
 
+        /**
+         * Subsection: Back Button Functionality
+         * Implements the "Back" button, which navigates the user to the previous page in their browser history.
+         */
         /* ---------------- Back Button ---------------- */
         document.querySelector('.back-btn')?.addEventListener('click', () => history.back());
     })();
