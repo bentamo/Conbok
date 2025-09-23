@@ -49,6 +49,9 @@ require_once 'event-dashboard-overview-tab.php';
 require_once 'event-dashboard-registrations-tab.php';
 require_once 'event-dashboard-guests-tab.php';
 
+// QR Code
+require_once 'qr-code-generator-new.php';
+
 /**
  * Returns the main instance of WordPress_Plugin_Template to prevent the need to use globals.
  *
