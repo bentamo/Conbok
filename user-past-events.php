@@ -1,4 +1,8 @@
 <?php
+// -------------------------------
+// Shortcode: [user-past-events]
+// Displays all past events for the logged-in user
+// -------------------------------
 function conbook_user_past_events_shortcode($atts) {
     if (!is_user_logged_in()) {
         return '<p>Please log in to view your past events.</p>';

@@ -1,8 +1,27 @@
 <?php
+/**
+ * Main Shortcode Handler for the Event Guest Dashboard Tab.
+ *
+ * Registers the `event-dashboard-guests-tab` shortcode. This function is responsible for
+ * querying and displaying a list of all registered guests for a specific event. It fetches
+ * guest information from the database and renders an HTML table. The table includes fields
+ * for the guest's name, email, contact number, and a dropdown to update their status
+ * (e.g., Checked In, No Show). It also enqueues an inline script to handle AJAX updates.
+ *
+ * Usage: `[event-dashboard-guests-tab]`
+ *
+ * @return string The complete HTML output of the guests table.
+ */
 function conbook_event_dashboard_guests_tab_shortcode() {
     global $wpdb;
 
-    // Get the event slug from the URL
+    /**
+     * Section: Event Data Retrieval
+     *
+     * Fetches the event slug from the URL query variable. It then uses the slug to
+     * retrieve the corresponding event post object. The function returns early if
+     * no valid slug or event is found, preventing errors.
+     */
     $slug = sanitize_text_field(get_query_var('event_slug', ''));
     if (!$slug) return '';
 
@@ -12,6 +31,13 @@ function conbook_event_dashboard_guests_tab_shortcode() {
 
     $post_id = $event->ID;
 
+    /**
+     * Section: Database Query
+     *
+     * This section joins the `event_guests` and `event_registrations` tables to fetch
+     * a comprehensive list of all guests associated with the current event. The results
+     * are ordered by creation date to show the most recent registrations first.
+     */
     $table_guests = $wpdb->prefix . 'event_guests';
     $table_reg = $wpdb->prefix . 'event_registrations';
 
@@ -25,9 +51,21 @@ function conbook_event_dashboard_guests_tab_shortcode() {
         $post_id
     ));
 
-    // Nonce for AJAX
+    /**
+     * Section: Security Nonce
+     *
+     * Creates a unique security nonce for AJAX requests. This is a crucial security measure
+     * to protect against CSRF (Cross-Site Request Forgery) attacks.
+     */
     $ajax_nonce = wp_create_nonce('update_guest_status_nonce');
 
+    /**
+     * Section: HTML Output Generation
+     *
+     * Starts an output buffer to capture the generated HTML. This section renders a table
+     * that displays the guest list. It iterates through the database results and populates
+     * each row with guest data, including a dynamic dropdown for status updates.
+     */
     ob_start(); ?>
     <div class="event-dashboard-guests-tab">
         <table class="event-guests-table" border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse;">
@@ -69,6 +107,11 @@ function conbook_event_dashboard_guests_tab_shortcode() {
         </table>
     </div>
 
+    <!-- Section: JavaScript for AJAX Updates
+
+        This inline script uses jQuery to listen for changes on the guest status dropdown.
+        When a change occurs, it sends an AJAX request to the server with the guest's ID
+        and the new status. This allows for real-time updates without a page reload. -->
     <script type="text/javascript">
         jQuery(document).ready(function($) {
             $('.guest-status-dropdown').on('change', function() {
@@ -102,7 +145,13 @@ function conbook_event_dashboard_guests_tab_shortcode() {
 add_shortcode('event-dashboard-guests-tab', 'conbook_event_dashboard_guests_tab_shortcode');
 
 
-// AJAX handler to update guest status
+/**
+ * Section: JavaScript for AJAX Updates
+ *
+ * This inline script uses jQuery to listen for changes on the guest status dropdown.
+ * When a change occurs, it sends an AJAX request to the server with the guest's ID
+ * and the new status. This allows for real-time updates without a page reload.
+ */
 function conbook_update_guest_status() {
     global $wpdb;
 

@@ -1,10 +1,34 @@
 <?php
-// -------------------------------
-// Shortcode: [user-dashboard]
-// Displays user dashboard with upcoming/past events and registrations
-// -------------------------------
+/**
+ * SECTION: CORE SHORTCODE LOGIC
+ * Description: Registers the primary [user-dashboard] shortcode
+ * to display a logged-in user's personalized dashboard.
+ *
+ * This section includes the main function that handles the
+ * shortcode's output, including user authentication checks and
+ * the primary HTML structure.
+ */
+
+/**
+ * Renders the full user dashboard view.
+ *
+ * This shortcode checks if a user is logged in. If not, it displays a
+ * login prompt. For logged-in users, it generates the HTML for the
+ * dashboard, including separate sections for 'My Events' and
+ * 'My Registrations', each with their own tabbed content.
+ *
+ * It uses nested shortcodes to dynamically load event and registration
+ * data, separating content from the main layout logic.
+ *
+ * @return string The HTML output for the user dashboard.
+ */
 add_shortcode('user-dashboard', function() {
 
+    /**
+     * SUB-SECTION: User Authentication
+     * Description: Verifies if a user is currently logged in before
+     * rendering the dashboard content.
+     */
     if (!is_user_logged_in()) {
         return '<p>Please log in to view your dashboard.</p>';
     }
@@ -13,7 +37,15 @@ add_shortcode('user-dashboard', function() {
     ?>
     <div class="dashboard-container">
 
-        <!-- My Events Section -->
+        <!-- 
+         SUB-SECTION: My Events
+ 
+         Description: Renders the events section of the user dashboard.
+         This section features a 'Create Event' button and a tabbed
+         interface for viewing upcoming and past events owned by the user.
+         The content is populated by the [user-upcoming-events] and
+         [user-past-events] shortcodes. 
+        -->
         <section class="dashboard-section">
             <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2 style="font-size:28px; font-weight:bold; background: linear-gradient(135deg,#ff4b2b,#7d3fff); -webkit-background-clip: text; color: transparent;">My Events</h2>
@@ -36,7 +68,15 @@ add_shortcode('user-dashboard', function() {
             </div>
         </section>
 
-        <!-- My Registrations Section -->
+        <!-- 
+         SUB-SECTION: My Registrations
+
+         Description: Renders the registrations section of the user dashboard.
+         This section provides a tabbed view for events the user has
+         registered for, separated into upcoming and past events.
+         The content is populated by the [user-upcoming-registrations] and
+         [user-past-registrations] shortcodes.
+        -->
         <section class="dashboard-section" style="margin-top:60px;">
             <h2 style="font-size:28px; font-weight:bold; background: linear-gradient(135deg,#ff4b2b,#7d3fff); -webkit-background-clip: text; color: transparent; margin-bottom:20px;">My Registrations</h2>
 
@@ -58,6 +98,14 @@ add_shortcode('user-dashboard', function() {
 
     </div>
 
+    <!-- 
+     SECTION: STYLESHEET
+     Description: Contains all CSS rules for styling the user dashboard.
+     The styles are encapsulated within the shortcode to ensure they are
+     loaded only when the shortcode is used.
+    
+     This section is divided into logical sub-sections for better organization.
+    -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap');
 
@@ -276,8 +324,21 @@ add_shortcode('user-dashboard', function() {
         
     </style>
 
+    <!-- 
+     SECTION: JAVASCRIPT
+     Description: Contains all JavaScript for handling interactive elements.
+     This script manages the tabbed interface functionality.
+    -->
     <script>
-        // Tab initialization
+        /**
+         * Initializes the tab functionality for all '.tabs' containers on the page.
+         *
+         * This function handles:
+         * 1. Setting the initial position of the tab indicator.
+         * 2. Updating the indicator on window resize to maintain responsiveness.
+         * 3. Attaching click event listeners to each tab button to switch
+         * between tab panels and update the indicator's position.
+         */
         function initTabs() {
             document.querySelectorAll('.tabs').forEach(tabContainer => {
                 const buttons = tabContainer.querySelectorAll('.tab-btn');
